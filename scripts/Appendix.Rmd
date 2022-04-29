@@ -1,0 +1,480 @@
+---
+output: pdf_document
+---
+
+\newpage
+
+
+\newpage
+
+
+# Appendix
+
+
+## Unstandardized Survey Items
+
+In the following, the unstandardized survey items used by Niederkrotenthaler et al. (2022) are listed that assessed anger, the conflict-related variables conflicts during the last week at work, conflicts during the last week at home, change of conflicts compared to pre-Covid times and the experience of physical and psychological violence in the last week as well as the positive life outcomes.
+
+Anger was measured with the question \textit{Wie stark oder oft fühlten Sie sich während der letzten Woche ärgerlich / verärgert?}. Potential item responses were the following:
+```{=latex}
+\begin{itemize}
+    \item \textit{Überhaupt nicht ärgerlich.}
+    \item \textit{Kaum ärgerlich.}
+    \item \textit{Etwas ärgerlich.}
+    \item \textit{Sehr ärgerlich.}
+    \item \textit{Äußerst ärgerlich.}
+\end{itemize}
+```
+The variable conflicts during the last two weeks at home was measured with the question \textit{Hatten Sie in den vergangenen zwei Wochen Konflikte, Spannungen, Streitigkeiten, Meinungsverschiedenheiten mit einem Familienmitglied oder Ihrem Partner?}.
+The variable conflicts during the last two weeks at work was assessed with the item \textit{Haben Sie in den vergangenen zwei Wochen Probleme oder Konflikte im beruflichen Setting erlebt (z.B. Konflikte mit ArbeitskollegInnen oder Vorgesetzten, Jobverlust, Probleme bedingt durch die Kurzarbeits-Verordnung, etc.)?}.
+The variables physical and psychological violence were assessed with the questions \textit{Haben Sie in den vergangenen zwei Wochen psychische Gewalt durch ein Familienmitglied oder Ihren Partner erfahren? Erklärung: psychische Gewalt beinhaltet Beleidigungen, Beschimpfungen, emotionale Vernachlässigung, Bedrohungen, Erpressungen, Handlungen, die darauf abzielen, den anderen zu ärgern, etc.} and \textit{Haben Sie in den vergangenen zwei Wochen physische Gewalt durch ein Familienmitglied oder Ihren Partner erfahren? Erklärung: physische Gewalt beinhaltet das Zufügen von körperlichen Verletzungen durch den anderen (Ohrfeige, Stoßen, Schubsen, Schlagen, Würgen, Verbrennungen, etc.) oder das Bedrohen mit einer Waffe (Messer oder Schusswaffe) durch den anderen.} respectively.
+
+These four conflict-related variables measured the severity of the conflicts on a 5-point scale, ranging from 0 (*not at all*) to 5 (*very much*).
+
+The variable conflicts compared to pre-Covid times was assessed by the item \textit{Bemerken Sie eine Veränderung der Anzahl oder der Intensität an Konflikten, Spannungen, Streitigkeiten, oder Meinungsverschiedenheiten im Vergleich zu vor der Covid-19 Krise?}. The possible responses were the following:
+```{=latex}
+\begin{itemize}
+    \item \textit{Anzahl / Intensität stark gesunken.}
+    \item \textit{Anzahl / Intensität gesunken.}
+    \item \textit{Anzahl / Intensität gleich geblieben.}
+    \item \textit{Anzahl / Intensität gestiegen.}
+    \item \textit{Anzahl / Intensität stark gestiegen.}
+\end{itemize}
+```
+
+Positive life outcomes were assessed with the following question: \textit{In welchen Lebensbereichen nehmen Sie derzeit (den letzten beiden Wochen) im Rahmen der Covid-19 Krise positive Aspekte wahr, im Vergleich zu vor der Krise?} Participants could select one or more of the following responses:
+```{=latex}
+\begin{itemize}
+    \item \textit{Mein Wohlbefinden ist besser als vor der COVID-19 Krise.}
+    \item \textit{Ich fühle mich ausgeruhter als vor der COVID-19 Krise.}
+    \item \textit{Ich habe mehr Zeit für meine Familie als vor der COVID-19 Krise.}
+    \item \textit{Ich habe mehr Zeit für Freunde als vor der COVID-19 Krise.}
+    \item \textit{Ich habe weniger Stress als vor der COVID-19 Krise.}
+    \item \textit{Ich langweile mich weniger als vor der COVID-19 Krise.}
+    \item \textit{Ich treibe mehr Sport als vor der COVID-19 Krise.}
+    \item \textit{Ich ernähre mich gesünder als vor der COVID-19 Krise.}
+    \item \textit{Ich schlafe besser als vor der COVID-19 Krise.}
+    \item \textit{Ich fühle mich glücklicher als vor der COVID-19 Krise.}
+    \item \textit{Ich fühle mich anderen Menschen verbundener als vor der COVID-19 Krise.}
+    \item \textit{Andere:}
+    \item \textit{Nichts davon.}
+
+\end{itemize}
+```
+
+\clearpage
+
+
+<!-- Reset figure and table counter for Appendix -->
+\renewcommand{\thefigure}{A\arabic{figure}}
+\renewcommand{\thetable}{A\arabic{table}}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+
+<!-- ## Figures and Tables -->
+```{=latex}
+\begin{figure*}
+\caption{ Histograms of GS Positive and Negative Emotionality in Twitter and Der Standard \label{fig:hist-plot}}
+
+\subfloat[GS Negative Affect Twitter\label{fig:hist-plot-1}]{\includegraphics[width=0.48\linewidth]{plots/threshold_twitter_neg} }\subfloat[GS Positive Affect Twitter\label{fig:hist-plot-2}]{\includegraphics[width=0.48\linewidth]{plots/threshold_twitter_pos} }\newline\subfloat[GS Negative Affect Der Standard\label{fig:hist-plot-3}]{\includegraphics[width=0.48\linewidth]{plots/threshold_stand_neg} }\subfloat[GS Negative Affect Der Standard\label{fig:hist-plot-4}]{\includegraphics[width=0.48\linewidth]{plots/threshold_stand_pos} }
+
+\textit{Note:} The histograms illustrate a visual aid to setting a threshold to categorize posts as negative or positive. In order to scale the plot in a way such that the decision to set the threshold at 0.9 can be understood the GS positive affect score distributions is only displayed for higher values, i.e., ranging from 0.5 to 1.
+\end{figure*}
+```
+
+```{=latex}
+\begin{figure*}
+\caption{Boxplots of Surveyed Anger, Anxiety and Depression \label{fig:survey-plot}}
+\subfloat[Anger(\#fig:survey-plot-11)]{\includegraphics{plots/boxplot_ang} }\newline\subfloat[Anxiety(\#fig:survey-plot-12)]{\includegraphics{plots/boxplot_anx} }\newline\subfloat[Depression(\#fig:survey-plot-13)]{\includegraphics{plots/boxplot_dep} }
+\end{figure*}
+```
+
+
+<!-- Alternative of above figure without direct LATEX-implementation: but figure captions below, not on top of figure -->
+<!-- ```{r survey-plot, fig.cap = "Boxplots of Surveyed Anger, Anxiety and Depression", message = FALSE, fig.ncol = 1, fig.show='hold', fig.subcap=c('Anger', 'Anxiety', 'Depression')} -->
+<!-- knitr::include_graphics("plots/boxplot_ang.pdf") -->
+<!-- knitr::include_graphics("plots/boxplot_anx.pdf") -->
+<!-- knitr::include_graphics("plots/boxplot_dep.pdf") -->
+<!-- ``` -->
+
+
+```{=latex}
+\begin{figure*}
+\caption{Three-Day Rolling Means of Negative and Positive Emotionality and Affect in Twitter and Der Standard in 2020  \label{fig:survey-plot-3}}
+
+\subfloat[Negative Affect(\#fig:survey-plot-1)]{\includegraphics{plots/negative_affect_smooth} }\newline\subfloat[Positive Affect (\#fig:survey-plot-2)]{\includegraphics{plots/positive_affect_smooth}}
+
+\textit{Note:} This plot pictures the three-day rolling means of the baseline-corrected LIWC and GS negative and positive emotionality and affect measures in Twitter. For a more detailed description of the events depicted by the vertical lines see Figure~\ref{fig:survey-plot-4}.   
+\end{figure*}
+```
+
+
+```{r table-appendix-1}
+Twitter_table <- cbind(results_main$`Results Twitter - Nonparametric bootstrap`, results_main$`Results Twitter - Fisher z-transformation`[, 3:4])
+colnames(Twitter_table)[3:ncol(Twitter_table)] <- c("Lower adj Boot", "Upper adj Boot", "Lower adj Woods", "Upper adj Woods")
+row.names(Twitter_table)[c(3, 5)] <- c("Ang Surv Neg GS", "Ang Surv Ang")
+
+apa_table(
+  t(Twitter_table)
+  , caption = "Spearman's Rank Correlations' Confidence Intervals Computed by Bootstrap and Analytical Procedure and its Value of Confidence for Twitter"
+  , note = "Woods describes the chosen analytical procedure to compute confidence intervals. Since the Holm-procedure adjusts p-values and therefore also confidence intervals, adjusted confidence intervals are listed in the table. Adjusted is abbreviated with adj. Ang, Anx, Depr, Surv are abbreviations for anger, anxiety, depression and survey."
+  , span_text_columns = TRUE
+  , escape = FALSE
+  , font_size = "small"
+)
+```
+
+
+```{r table-appendix-2}
+Stand_table <- cbind(results_main$`Results DerStandard - Nonparametric bootstrap`, results_main$`Results DerStandard - Fisher z-transformation`[, 3:4])
+colnames(Stand_table)[3:ncol(Stand_table)] <- c("Lower adj Boot", "Upper adj Boot", "Lower adj Woods", "Upper adj Woods")
+row.names(Stand_table)[c(3, 5)] <- c("Ang Surv Neg GS", "Ang Surv Ang")
+
+apa_table(
+    t(Stand_table)
+    , caption = "Spearman's Rank Correlations' Confidence Intervals Computed by Bootstrap and Analytical Procedure and its Value of Confidence for Der Standard"
+  , span_text_columns = TRUE
+  , note = "Woods describes the chosen analytical procedure to compute confidence intervals. Since the Holm-procedure adjusts p-values and therefore also confidence intervals, adjusted confidence intervals are listed in the table. Adjusted is abbreviated with adj. Ang, Anx, Depr, Surv are abbreviations for anger, anxiety, depression and survey."
+  , escape = TRUE
+  , font_size = "small"
+)
+```
+
+
+
+```{=latex}
+\begin{figure*}
+\caption{Histogram and Q-Q Plot of Bootstrap Samples for Spearman's $\rho$ for Twitter \label{fig:survey-plot-7}}
+
+\subfloat[Anger GS Negative\label{fig:survey-plot-7-1}]{\includegraphics[width=0.48\linewidth]{plots/histboottwitter_ang_GS} }\subfloat[Anxiety GS Negative\label{fig:survey-plot-7-2}]{\includegraphics[width=0.48\linewidth]{plots/histboottwitter_anx_GS} }\newline\subfloat[Depression GS Negative\label{fig:survey-plot-7-3}]{\includegraphics[width=0.48\linewidth]{plots/histboottwitter_depr_GS} }\subfloat[Anger LIWC Anger\label{fig:survey-plot-7-4}]{\includegraphics[width=0.48\linewidth]{plots/histboottwitter_ang_LIWC} }\newline\subfloat[Anxiety LIWC Anxiety\label{fig:survey-plot-7-5}]{\includegraphics[width=0.48\linewidth]{plots/histboottwitter_anx_LIWC} }\subfloat[Depression LIWC Sadness\label{fig:survey-plot-7-6}]{\includegraphics[width=0.48\linewidth]{plots/histboottwitter_depr_LIWC} }
+
+\textit{Note:} Q-Q plots compare the empirical distribution's quantiles against - in this case - the quantile of a normal distribution. A larger deviance from the diagonal line therefore indicates that the normality assumption most analytical procedure presume is not met.
+
+\end{figure*}
+```
+
+
+<!-- Alternative of above figure without direct LATEX-implementation spanning both columns: but figure captions below, not on top of figure -->
+<!-- (ref:my-caption8) Histogram and Q-Q Plot of Bootstrap Samples for $\rho$ Twitter -->
+
+<!-- ```{r survey-plot-7, fig.cap = "(ref:my-caption8)", message = FALSE , fig.env="figure*", fig.ncol = 2, out.width = "48%", fig.show='hold', fig.subcap=c('Anger GS Negative', 'Anxiety GS Negative', 'Depression GS Negative', 'Anger LIWC Anger', 'Anxiety LIWC Anxiety', 'Depression LIWC Sadness')} -->
+<!-- knitr::include_graphics("plots/histboottwitter_ang_GS.png") -->
+<!-- knitr::include_graphics("plots/histboottwitter_anx_GS.png") -->
+<!-- knitr::include_graphics("plots/histboottwitter_depr_GS.png") -->
+<!-- knitr::include_graphics("plots/histboottwitter_ang_LIWC.png") -->
+<!-- knitr::include_graphics("plots/histboottwitter_anx_LIWC.png") -->
+<!-- knitr::include_graphics("plots/histboottwitter_depr_LIWC.png") -->
+<!-- ``` -->
+
+
+```{=latex}
+\begin{figure*}
+\caption{Histogram and Q-Q Plot of Bootstrap Samples for Spearman's $\rho$ for Der Standard \label{fig:survey-plot-8}}
+
+\subfloat[Anger GS Negative\label{fig:survey-plot-8-1}]{\includegraphics[width=0.48\linewidth]{plots/histbootstand_ang_GS} }\subfloat[Anxiety GS Negative\label{fig:survey-plot-8-2}]{\includegraphics[width=0.48\linewidth]{plots/histbootstand_anx_GS} }\newline\subfloat[Depression GS Negative\label{fig:survey-plot-8-3}]{\includegraphics[width=0.48\linewidth]{plots/histbootstand_depr_GS} }\subfloat[Anger LIWC Anger\label{fig:survey-plot-8-4}]{\includegraphics[width=0.48\linewidth]{plots/histbootstand_ang_LIWC} }\newline\subfloat[Anxiety LIWC Anxiety\label{fig:survey-plot-8-5}]{\includegraphics[width=0.48\linewidth]{plots/histbootstand_anx_LIWC} }\subfloat[Depression LIWC Sadness\label{fig:survey-plot-8-6}]{\includegraphics[width=0.48\linewidth]{plots/histbootstand_depr_LIWC} }
+
+\end{figure*}
+```
+
+
+
+```{=latex}
+\begin{figure*}
+\caption{Three-Day Rolling Means of LIWC Anxiety in Tweets from Users in Vienna and Upper Austria in 2020 Grouped by Gender}(\#fig:Anx-gender-region)
+\includegraphics[width=\textwidth]{plots/plt_anxiety}
+
+\textit{Note:} This plot pictures the three-day rolling means of the baseline-corrected LIWC anxiety measure in Twitter split by gender and two example federal states, Vienna and Upper Austria. The vertical lines portray important events stirring emotional responses in Austria: (1) the terrorist attack in Hanau, Germany on February 25, 2020, (2) the first Covid-19 case in Austria on February 25, 2020, (3) the first death from Covid-19 in Austria on March 12, 2020, (4) press releases about considerations of public agencies to stir anxiety of the population at the beginning of the pandemic on April 28, 2020, (5) Black Lives Matter demonstrations against police brutality on May 31, 2020, and (6) the terrorist attack in Vienna, Austria on November 02, 2020.  
+\end{figure*}
+```
+
+
+
+```{=latex}
+\begin{figure*}
+\caption{Three-Day Rolling Means of LIWC Sadness in Tweets from Users in Vienna and Upper Austria in 2020 Grouped by Gender}(\#fig:Sad-gender-region)
+\includegraphics[width=\textwidth]{plots/plt_sadness}
+
+\textit{Note:} This plot pictures the three-day rolling means of the baseline-corrected LIWC sadness measure in Twitter split by gender and two example federal states, Vienna and Upper Austria. The vertical lines portray important events stirring emotional responses in Austria: (1) the terrorist attack in Hanau, Germany on February 25, 2020, (2) the first Covid-19 case in Austria on February 25, 2020, (3) the first death from Covid-19 in Austria on March 12, 2020, (4) press releases about considerations of public agencies to stir anxiety of the population at the beginning of the pandemic on April 28, 2020, (5) Black Lives Matter demonstrations against police brutality on May 31, 2020, and (6) the terrorist attack in Vienna, Austria on November 02, 2020.
+\end{figure*}
+```
+
+
+```{=latex}
+\begin{figure*}
+\caption{Three-Day Rolling Means of GS Negative Affect in Tweets from Users in Vienna and Upper Austria in 2020 Grouped by Gender}(\#fig:GS-gender-region)
+\includegraphics[width=\textwidth]{plots/plt_negGs} 
+
+\textit{Note:} This plot pictures the three-day rolling means of the baseline-corrected GS negative affect measure in Twitter split by gender and two example federal states, Vienna and Upper Austria. The vertical lines portray important events stirring emotional responses in Austria: (1) the terrorist attack in Hanau, Germany on February 25, 2020, (2) the first Covid-19 case in Austria on February 25, 2020, (3) the first death from Covid-19 in Austria on March 12, 2020, (4) press releases about considerations of public agencies to stir anxiety of the population at the beginning of the pandemic on April 28, 2020, (5) Black Lives Matter demonstrations against police brutality on May 31, 2020, and (6) the terrorist attack in Vienna, Austria on November 02, 2020.
+\end{figure*}
+```
+
+```{r table-ang-GS}
+# Anger, GS negative
+# null model (baseline): only gender and federal state as regressors
+row.names(anova_ang_GS$table)[2:6] <- c("Male", "Salzburg", "Styria", "Tyrol", "Vienna")
+# table for model comparison 
+apa_table(
+  anova_ang_GS$table
+  , caption = "Hierarchical Regression - Influence of Gender, Federal State and GS Negative Affect on Survey Anger"
+  , note = "The baseline model refers to a model that only contains the demographic information, i.e., gender and federal state, as regressors. The second column refers to a second model that adds a sentiment measure to the regressors."
+  , span_text_columns = TRUE 
+  #, align = c("m{1.7cm}", rep("m{2.75cm}", 2))
+  , placement = "b"
+  , font_size = "small"
+)
+```
+
+```{r table-anx-GS}
+# Anxiety, GS negative
+# null model (baseline): only gender and federal state as regressors
+row.names(anova_anx_GS$table)[2:6] <- c("Male", "Salzburg", "Styria", "Tyrol", "Vienna")
+# table for model comparison 
+apa_table(
+  anova_anx_GS$table
+  , caption = "Hierarchical Regression - Influence of Gender, Federal State and GS Negative Affect on Survey Anxiety"
+  , span_text_columns = TRUE 
+  #, align = c("m{1.7cm}", rep("m{2.75cm}", 2))
+  , placement = "b"
+  , font_size = "small"
+)
+```
+
+```{r table-depr-GS}
+# Depression, GS negative
+# null model (baseline): only gender and federal state as regressors
+row.names(anova_depr_GS$table)[2:6] <- c("Male", "Salzburg", "Styria", "Tyrol", "Vienna")
+# table for model comparison 
+apa_table(
+  anova_depr_GS$table
+  , caption = "Hierarchical Regression - Influence of Gender, Federal State and GS Negative Affect on Survey Depression"
+  , span_text_columns = TRUE 
+  #, align = c("m{1.7cm}", rep("m{2.75cm}", 2))
+  , font_size = "small"
+)
+```
+
+```{r table-ang-liwc}
+# Anger, LIWC anger
+# null model (baseline): only gender and federal state as regressors
+row.names(anova_ang_LIWC$table)[2:6] <- c("Male", "Salzburg", "Styria", "Tyrol", "Vienna")
+# table for model comparison 
+apa_table(
+  anova_ang_LIWC$table
+  , caption = "Hierarchical Regression - Influence of Gender, Federal State and LIWC Anger on Survey Anger"
+  , span_text_columns = TRUE 
+  #, align = c("m{1.7cm}", rep("m{2.75cm}", 2))
+  , placement = "b"
+  , font_size = "small"
+)
+```
+
+```{r table-anx-liwc}
+# Anxiety, LIWC anxiety
+# null model (baseline): only gender and federal state as regressors
+row.names(anova_anx_LIWC$table)[2:6] <- c("Male", "Salzburg", "Styria", "Tyrol", "Vienna")
+# table for model comparison 
+apa_table(
+  anova_anx_LIWC$table
+  , caption = "Hierarchical Regression - Influence of Gender, Federal State and LIWC Anxiety on Survey Anxiety"
+  , span_text_columns = TRUE 
+  #, align = c("m{1.7cm}", rep("m{2.75cm}", 2))
+  , placement = "b"
+  , font_size = "small"
+)
+```
+
+```{r table-depr-liwc}
+# Depression, LIWC sadness
+# null model (baseline): only gender and federal state as regressors
+row.names(anova_depr_LIWC$table)[2:6] <- c("Male", "Salzburg", "Styria", "Tyrol", "Vienna")
+# table for model comparison 
+apa_table(
+  anova_depr_LIWC$table
+  , caption = "Hierarchical Regression - Influence of Gender, Federal State and LIWC Sadness on Survey Depression"
+  , span_text_columns = TRUE 
+  #, align = c("m{1.7cm}", rep("m{2.75cm}", 2))
+  , placement = "b"
+  , font_size = "small"
+)
+```
+
+
+```{=latex}
+\begin{figure*}
+\caption{Partial Correlation Plots: Survey-Sentiment-Association Controlled for Gender and Federal State }(\#fig:pcp-plots)
+\subfloat[Anger GS Negative(\#fig:pcp-plots-1)]{\includegraphics[width=0.48\linewidth]{plots/pcp_anger_GS} }\subfloat[Anxiety GS Negative(\#fig:pcp-plots-2)]{\includegraphics[width=0.48\linewidth]{plots/pcp_anxiety_GS} }\newline\subfloat[Depression GS Negative(\#fig:pcp-plots-3)]{\includegraphics[width=0.48\linewidth]{plots/pcp_depr_GS} }\subfloat[Anger LIWC Anger(\#fig:pcp-plots-4)]{\includegraphics[width=0.48\linewidth]{plots/pcp_anger_LIWC} }\newline\subfloat[Anxiety LIWC Anxiety(\#fig:pcp-plots-5)]{\includegraphics[width=0.48\linewidth]{plots/pcp_anxiety_LIWC} }\subfloat[Depression LIWC Sadness (\#fig:pcp-plots-6)]{\includegraphics[width=0.48\linewidth]{plots/pcp_depr_LIWC} }
+
+\textit{Note:} The shaded area within the plot represents the 95 \% bootstrapped confidence intervals of the regression line.
+\end{figure*}
+```
+
+
+
+<!-- ```{r diagnostic-plots, fig.cap = "Diagnostic Plots", message = FALSE, fig.ncol = 2, out.width = "48%",  fig.env="figure*", fig.show='hold', fig.subcap=c('Anger GS Negative', 'Anxiety GS Negative', 'Depression GS Negative', 'Anger LIWC Anger', 'Anxiety LIWC Anxiety', 'Depression LIWC Sadness')} -->
+<!-- knitr::include_graphics("plots/diagnostic_ang_GS.pdf") -->
+<!-- knitr::include_graphics("plots/diagnostic_anx_GS.pdf") -->
+<!-- knitr::include_graphics("plots/diagnostic_depr_GS.pdf") -->
+<!-- knitr::include_graphics("plots/diagnostic_ang_LIWC.pdf") -->
+<!-- knitr::include_graphics("plots/diagnostic_anx_LIWC.pdf") -->
+<!-- knitr::include_graphics("plots/diagnostic_depr_LIWC.pdf") -->
+<!-- ``` -->
+
+
+
+
+```{=latex}
+\begin{figure*}
+\caption{Diagnostic Plots \label{fig:diagnostic-plots}}
+\subfloat[Anger GS Negative\label{fig:diagnostic-plots-1}]{\includegraphics[width=0.48\linewidth]{plots/diagnostic_ang_GS} }\subfloat[Anxiety GS Negative\label{fig:diagnostic-plots-2}]{\includegraphics[width=0.48\linewidth]{plots/diagnostic_anx_GS} }\newline\subfloat[Depression GS Negative\label{fig:diagnostic-plots-3}]{\includegraphics[width=0.48\linewidth]{plots/diagnostic_depr_GS} }\subfloat[Anger LIWC Anger\label{fig:diagnostic-plots-4}]{\includegraphics[width=0.48\linewidth]{plots/diagnostic_ang_LIWC} }\newline\subfloat[Anxiety LIWC Anxiety\label{fig:diagnostic-plots-5}]{\includegraphics[width=0.48\linewidth]{plots/diagnostic_anx_LIWC} }\subfloat[Depression LIWC Sadness\label{fig:diagnostic-plots-6}]{\includegraphics[width=0.48\linewidth]{plots/diagnostic_depr_LIWC} }
+\end{figure*}
+```
+
+
+
+```{=latex}
+\begin{figure*}
+\caption{Spearman's $\rho$ as a Function of the Time Window of Twitter and Der Standard Data Used to Calculate Sentiment Measures}(\#fig:scatter-lag-50)
+\subfloat[Twitter(\#fig:scatter-lag-50-1)]{\includegraphics[width=\textwidth]{plots/plt_twitter_lag_50} }\newline\subfloat[Der Standard(\#fig:scatter-lag-50-2)]{\includegraphics[width=\textwidth]{plots/plt_stand_lag_50} }
+
+\textit{Note:} This plot depicts the influence of the time window we used to include social media data for the computation of the sentiment measures on the correlation between self-reported and social media sentiment and emotion measures. The motivation behind this analysis is that the survey questions refer back either 14 days in the case of depression or seven days in case of anxiety and anger. To take this into account the start of the time window of included social media data is likewise adopted to either 14 or seven days prior to each survey wave. Past research indicates that the respondent's memory recall might be biased towards more short-termed events. We thus computed correlations based on restricted time windows. Increased correlations with the survey measures for a shorter time window would underline this theory. Note that for anxiety and anger only the correlations for time windows ranging from one to seven days are relevant. For depression the complete range, i.e., from 14 days to one day is relevant. Compared to Figure~\ref{fig:scatter-lag} we computed these correlations with a reduced dataset. Both social media and survey responses were only included up to the point when 50\,\% of the participants responded to each survey wave.
+\end{figure*}
+```
+
+```{r subset-detail, results='asis'}
+load(file = "../data/df_subset_anxiety_AIC.RData")
+load(file = "../data/df_subset_anxiety_BIC.RData")
+load(file = "../data/df_subset_anger_AIC.RData")
+load(file = "../data/df_subset_anger_BIC.RData")
+load(file = "../data/df_subset_depr_AIC.RData")
+load(file = "../data/df_subset_depr_BIC.RData")
+
+rownames(df_subset_anxiety_AIC) <- 1:5
+rownames(df_subset_anxiety_BIC) <- 1:5
+
+rownames(df_subset_anger_AIC) <- 1:5
+rownames(df_subset_anger_BIC) <- 1:5
+
+rownames(df_subset_depr_AIC) <- 1:5
+rownames(df_subset_depr_BIC) <- 1:5
+
+colnames(df_subset_anxiety_AIC) <- c("Salz", "Styr", "Tyr", "Vie", "Male", "LI Pos", "LI Neg", "LI Anx", "LI Ang", "LI Sad", "GS Pos", "GS Neg", "AIC")
+
+colnames(df_subset_anxiety_BIC) <- c("Salz", "Styr", "Tyr", "Vie", "Male", "LI Pos", "LI Neg", "LI Anx", "LI Ang", "LI Sad", "GS Pos", "GS Neg", "BIC")
+
+colnames(df_subset_anger_AIC) <- c("Salz", "Styr", "Tyr", "Vie", "Male", "LI Pos", "LI Neg", "LI Anx", "LI Ang", "LI Sad", "GS Pos", "GS Neg", "AIC")
+
+colnames(df_subset_anger_BIC) <- c("Salz", "Styr", "Tyr", "Vie", "Male", "LI Pos", "LI Neg", "LI Anx", "LI Ang", "LI Sad", "GS Pos", "GS Neg", "BIC")
+
+colnames(df_subset_depr_AIC) <- c("Salz", "Styr", "Tyr", "Vie", "Male", "LI Pos", "LI Neg", "LI Anx", "LI Ang", "LI Sad", "GS Pos", "GS Neg", "AIC")
+
+colnames(df_subset_depr_BIC) <- c("Salz", "Styr", "Tyr", "Vie", "Male", "LI Pos", "LI Neg", "LI Anx", "LI Ang", "LI Sad", "GS Pos", "GS Neg", "BIC")
+
+out_anger <- apa_table(
+  df_subset_anger_AIC
+  , caption = "Five Best Models for the Best Subset Selection that Minimized the AIC for Survey Anger"
+  , span_text_columns = TRUE 
+  , placement = "h"
+  , font_size = "small"
+)
+cat(gsub('NA', "-", out_anger))
+```
+
+```{r subset-detail-2, results='asis'}
+out_anger_BIC <- apa_table(
+  df_subset_anger_BIC
+  , caption = "Five Best Models for the Best Subset Selection that Minimized the BIC for Survey Anger"
+  , span_text_columns = TRUE
+  , placement = "h"
+  , escape = TRUE
+  , font_size = "small"
+)
+cat(gsub('NA', "-", out_anger_BIC))
+```
+
+```{r subset-detail-3, results='asis'}
+out_anx <- apa_table(
+  df_subset_anxiety_AIC
+  , caption = "Five Best Models for the Best Subset Selection that Minimized the AIC for Survey Anxiety"
+  , span_text_columns = TRUE 
+  , placement = "h"
+  , font_size = "small"
+)
+cat(gsub('NA', "-", out_anx))
+```
+
+```{r subset-detail-4, results='asis'}
+out_anx_BIC <- apa_table(
+  df_subset_anxiety_BIC
+  , caption = "Five Best Models for the Best Subset Selection that Minimized the BIC for Survey Anxiety"
+  , span_text_columns = TRUE
+  , placement = "h"
+  , escape = TRUE
+  , font_size = "small"
+)
+cat(gsub('NA', "-", out_anx_BIC))
+```
+
+```{r subset-detail-5, results='asis'}
+out_depr<- apa_table(
+  df_subset_depr_AIC
+  , caption = "Five Best Models for the Best Subset Selection that Minimized the AIC for Survey Depression"
+  , span_text_columns = TRUE 
+  , placement = "h"
+  , font_size = "small"
+)
+cat(gsub('NA', "-", out_depr))
+```
+
+```{r subset-detail-6, results='asis'}
+out_depr_BIC <- apa_table(
+  df_subset_depr_BIC
+  , caption = "Five Best Models for the Best Subset Selection that Minimized the BIC for Survey Depression"
+  , note = "Salz, Styr, Tyr and Vie are abbreviations for Salzburg, Styria, Tyrol and Vienna. LI, Pos, Neg, Anx, Ang and Depr are the respective abbreviations for LIWC, positive, negative, anxiety, anger, and depression. A hyphen indicates that the corresponding variable was not included in the model."
+  , span_text_columns = TRUE
+  , escape = TRUE
+  , font_size = "small"
+)
+cat(gsub('NA', "-", out_depr_BIC))
+```
+
+
+```{=latex}
+\begin{figure*}[h!]
+\caption{Mixed Correlations between the Included Survey Variables in the Factor Analysis}\label{fig:table-mix-cor}
+\includegraphics[width=\textwidth]{plots/plot_mixed_cor} 
+
+\textit{Note:} Mixed refers to the fact that the correlations were not computed by Pearson's correlation. Instead we considered the scale of the variables and hence computed tetrachoric, polychoric or polyserial correlations.
+\end{figure*}
+```
+
+
+```{=latex}
+\begin{figure*}[h!]
+\caption{Scree Plot of Factor Analysis}\label{fig:scree-plot}
+\includegraphics[width=\textwidth]{plots/scree_plot} 
+
+\textit{Note:} According to the scree plot, factors to the left of the plot's "ellbow" are retained. In this case, the scree plot suggests to include two factors. The blue dashed line shows the results of the parallel analysis. With this approach, all factors up to the first eigenvalue of the simulated data that exceeds the corresponding eigenvalue of the actual data should be retained. Contrarily to the scree plot, parallel analsis suggests to include six factors.
+\end{figure*}
+```
+
+```{r loading, message = FALSE}
+load(file = "../data/X_poly_cor.RData")
+colnames(X_poly$loadings) <- c("Positive Life Outcome Score", "Conflict- and Suicide-Related Score")
+X_poly$loadings <- unclass(X_poly$loadings)
+X_loadings_h2 <- round(cbind.data.frame(X_poly$loadings,X_poly$communality), 2)
+colnames(X_loadings_h2)[3] <- "Communality"
+row.names(X_loadings_h2)<- c("Conflicts family/partner", "Conflicts work", "Psychological domestic violence", "Physical domestic violence", "Change conflict", "Suicidal thoughts", "More wellbeing", "More relaxed", "Less stress", "Happier", "More connected", "More family", "More friends", "More hobbies", "Less boredom", "More sport", "Healthier nutrition", "Better sleep")
+# X_poly_cor$Vaccounted
+
+apa_table(
+  X_loadings_h2
+  , caption = "Loading Structure and Communalities after Varmiax Rotation"
+  , span_text_columns = TRUE
+  #, align = c("m{2.8cm}", rep("m{1.3cm}", 3))
+  , escape = TRUE
+  , font_size = "small"
+)
+
+```
+
+

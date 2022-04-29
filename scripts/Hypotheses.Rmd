@@ -1,0 +1,21 @@
+---
+output: pdf_document
+---
+
+# Hypotheses 
+<!-- <<<<<<< HEAD -->
+This thesis' main hypotheses were pre-registered. Generally, the aim of the study is to deepen the understanding of the association between survey data and aggregates of social media sentiment measures. Specifically, the confirmatory analyses aimed at shedding light on the following hypotheses:
+<!-- ======= -->
+<!-- This thesis' main hypotheses were pre-registered. Generally, the aim of the study is to deepen the understanding of the association between survey data and aggregates of social media sentiment measures. Specifically, we tested three basic hypotheses about the correlation of anxiety, anger and depression reports in a survey with corresponding social media emotion measures.  -->
+<!-- Each of these hypotheses were analyzed with two sentiment methods, i.e., LIWC (1-3) and GS (4-6), and two data sources: (a) Der Standard and (b) Twitter. Thus, the confirmatory analyses aimed at shedding light on the following associations: -->
+
+<!-- >>>>>>> main -->
+\begin{enumerate}
+    \item Anger in survey positively correlates with the anger LIWC score from a) Der Standard and b) Twitter data.
+    \item Anxiety in survey positively correlates with the anxiety LIWC score from a) Der Standard and b) Twitter data.
+    \item Depression in survey positively correlates with the sadness LIWC score from a) Der Standard and b) Twitter data.
+    \item Anger in survey positively correlates with the negative affect GS score from a) Der Standard and b) Twitter data.
+    \item Anxiety in survey positively correlates with the negative affect GS score from a) Der Standard and b) Twitter data.
+    \item Depression in survey positively correlates with the negative affect GS score from a) Der Standard and b) Twitter data.
+\end{enumerate}
+

@@ -1,0 +1,213 @@
+---
+output: pdf_document
+---
+
+# Methods
+
+## Study Design
+
+The study design is observational in nature and not experimental. It exploits three sources of data: representative Austrian surveys, Twitter, and the online forum of Der Standard. The analysis consists of a pre-registered confirmatory part, as well as an exploratory part. The preregistration is available at https://aspredicted.org/AYJ_LQL, and all code and aggregated data to reproduce the results can be found at https://github.com/dambedn/Thesis_Master.git.
+
+### Survey
+```{r}
+# load objects containing survey dates and initial number of participants and
+# number of actually included participants per gender and federal state (until
+# 75% responded per survey wave)
+
+load("../data/table_survey.RData")
+load("../data/n_wave.RData")
+
+
+# demographic variables of Twitter & Der Standard users derived by the survey
+load("../data/demographics.RData")
+```
+
+```{r Table-1}
+n_wave[, 2] <- printnum(as.numeric(n_wave[, 2]), drop0trailing = TRUE)
+apa_table(
+  printnum(n_wave, drop0trailing = TRUE)
+  , caption = "Total Number of Participants per Survey Wave"
+  , note = "These are the numbers of participants before selecting the first 75% of the respondents for each survey wave."
+  , span_text_columns = FALSE
+  , align = rep("m{3.7cm}", 2)
+  , escape = TRUE
+  , font_size = "small"
+)
+```
+The first data source was derived by a 12-wave online survey that was conducted from April 23 to December 23, 2020. It looked at the evolution of various mental health indicators and emotional characteristics in the Austrian population throughout that period. Whereas the first survey wave corresponded to the first strict lockdown in Austria, the following eight survey waves were conducted during phases of relaxations and lower incidence. This was followed by a soft lockdown from November 3 to 16 corresponding to wave ten. From November 17 to December 6 a second hard lockdown was implemented (wave eleven). After this second lockdown and during the 12th survey wave most of the preventive measures remained in place [@NIEDERKROTENTHALER202249]. Table \@ref(tab:Table-1) portrays the initial number of participants and the exact duration of the survey waves. There were no exclusion criteria regarding the survey data. Nonetheless, following the pre-registration we only included the first $75\,\%$ of the participants per survey wave in the analyses, to restrict the period of data collection for each wave. This way, we accounted for the short-lived nature of the two social media platforms: For instance, @pellert2021 found that survey emotions most strongly correlate with sentiment measures from Der Standard and Twitter based on data from a three-day period centred around the same and the following day, respectively. Table \@ref(tab:Table-2) depicts the number of participants per gender and federal state. 
+Furthermore, @NIEDERKROTENTHALER202249 surveyed social media usage in some of the waves. Information concerning whether a person owned a Twitter or Der Standard account was available for waves three to seven or four to seven respectively. `r as.numeric(printnum(demographics$proportion["Twitter", ], digits = 3)) * 100`$\,\%$ of all surveyed participants in these waves reported to own a Twitter account whilst `r as.numeric(printnum(demographics$proportion["Der Standard", ], digits = 3)) * 100`$\,\%$ reported to own a Der Standard account. For this subsample, a demographic profile could be computed. Among the self-reported owners of a Twitter and Der Standard account `r as.numeric(printnum(demographics$gender["Twitter", "Male"], digits = 3)) * 100`$\,\%$  and `r as.numeric(printnum(demographics$gender["Der Standard", "Male"], digits = 3)) * 100`$\,\%$ respectively were male, `r as.numeric(printnum(demographics$gender["Twitter", "Female"], digits = 3)) * 100`$\,\%$  and `r as.numeric(printnum(demographics$gender["Der Standard", "Female"], digits = 3)) * 100`$\,\%$ respectively were female and `r as.numeric(printnum(demographics$gender["Twitter", "Diverse"], digits = 3)) * 100`$\,\%$  and `r as.numeric(printnum(demographics$gender["Der Standard", "Diverse"], digits = 3)) * 100`$\,\%$ respectively were diverse. Moreover, Tables \@ref(tab:Table-3), \@ref(tab:Table-4) and \@ref(tab:Table-5) display the proportion of Twitter and Der Standard users within each age category, income category and region respectively. The survey data thence portrays similar demographic profiles for Twitter and Der Standard users.
+
+
+```{r Table-2}
+apa_table(
+  printnum(t(table_survey), drop0trailing = TRUE)
+  , caption = "Number of Surveyed Participants Grouped by Federal State and Gender"
+  , note = "These are the numbers of participants after including only 75% of the respondents for each survey wave and the federal states that passed the exclusion criterion for the Twitter data."
+  , span_text_columns = FALSE
+  , align = rep("m{1.65cm}", 3)
+  , escape = TRUE
+  , font_size = "small"
+)
+```
+
+```{r Table-3}
+apa_table(
+  printnum(t(demographics$age * 100))
+  , caption = "Age Characteristics of Surveyed Participants Owning a Twitter / Der Standard Account in %"
+  , span_text_columns = FALSE
+  , align = rep("m{2.35cm}", 3)
+  , escape = TRUE
+  , font_size = "small"
+)
+```
+
+```{r Table-4}
+apa_table(
+  printnum(t(demographics$income * 100))
+  , caption = "Income Characteristics of Surveyed Participants Owning a Twitter / Der Standard Account in %"
+  , span_text_columns = FALSE
+  , align = rep("m{2.4cm}", 2)
+  , escape = TRUE
+  , font_size = "small"
+)
+```
+
+```{r Table-5}
+apa_table(
+  printnum(t(demographics$region * 100))
+  , caption = "Regional Characteristics of Surveyed Participants Owning a Twitter / Der Standard Account in %"
+  , span_text_columns = FALSE
+  , align = rep("m{2.4cm}", 2)
+  , escape = TRUE
+  , font_size = "small"
+)
+```
+
+### Twitter
+
+```{r}
+# load R objects containing the number of included postings in 2019 and 2020
+load("../data/n_tweets_2019.RData")
+load("../data/n_tweets_2020.RData")
+```
+
+We derived the Austrian Twitter postings between January 2019 and December 2020 from the analytic company Brandwatch. In a first set of analyses, we only included German tweets from Austria [for further information on location classification by Brandwatch, see @vermeren_2015]. Furthermore, retweets and tweets from accounts classified as organizations by Brandwatch were excluded [@jaume_2013]. In order to eliminate both spam tweets and those generated by mass-media, we removed users with below $100$ or above $5,000$ followers like in earlier research [@pellert2021]. In total, `r printnum(as.numeric(n_tweets_2020), drop0trailing = TRUE)` Twitter postings in 2020 and `r printnum(as.numeric(n_tweets_2019), drop0trailing = TRUE)` in 2019 met these inclusion criteria. The 2019 data functioned as a baseline. Moreover, information concerning the gender and the federal state was available for most of the Twitter users. Similar to the location algorithm, gender was based on a Brandwatch algorithm that analyzes Twitter username and profile biography [@jaume_2013]. These demographics were used as confounding variables. In a second set of analyses grouped by gender and federal state, we included only states with a total volume of tweets exceeding $100,000$ tweets in 2020. This way, only sample sizes that allow for robust sentiment estimates were included, which resulted in tweets originating from Burgenland, Carinthia, Lower Austria and Vorarlberg to be removed. For the analyses grouped by federal state and gender, tweets without gender or federal state information were excluded. The resulting number of included postings grouped by gender and federal state in 2020 are pictured in Table \@ref(tab:Table-6). 
+
+```{r Table-6}
+load("../data/tables.RData")
+table_gender_region <- data.frame(rbind(table_gender_region))
+row.names(table_gender_region) <- c("Female", "Male", "Sum")
+colnames(table_gender_region)[1] <- "Upper Austria"
+
+apa_table(
+  printnum(t(table_gender_region), drop0trailing = TRUE)
+  , caption = "Number of Postings Grouped by Federal State and Gender in 2020"
+  , note = "These are the numbers of postings after all the inclusion criteria were applied."
+  , escape = FALSE
+  , span_text_columns = FALSE 
+  , align = rep("m{1.65cm}", 3)
+  , font_size = "small"
+)
+```
+
+
+### Der Standard
+
+```{r}
+# load R objects containing the number of included postings in 2019 and 2020
+load("../data/n_stand_2019.RData")
+load("../data/n_stand_2020.RData")
+```
+
+Besides Twitter, we leveraged a second social media data source. @pellert2021 derived the postings of interest by web scraping one of the major Austrian online newspapers Der Standard. To infer a picture of its user base's demographics as assessed by the surveys conducted by @NIEDERKROTENTHALER202249, see Tables \@ref(tab:Table-3), \@ref(tab:Table-4) and \@ref(tab:Table-5). In total we included `r printnum(as.numeric(n_stand_2020), drop0trailing = TRUE)` postings from 2020 and `r printnum(as.numeric(n_stand_2019), drop0trailing = TRUE)` postings from 2019. We included all comments below normal articles, only comments below live tickers were excluded, because these types of frequently updated articles did not exist during the entire analyzed period. The demographic characteristics of the users were not available, hence we were not able to perform analyses split by federal state with Der Standard data. Equivalently to the Twitter data, we calculated the baseline with the 2019 data. 
+
+## Survey Variables
+@NIEDERKROTENTHALER202249 surveyed various demographic, socio-economic and mental health-related variables.
+Among others, they assessed depression with the PHQ-9 (Patient Health Questionnaire) [@Kroenke2001], anxiety with a subscale of the Hospital Anxiety and Depression Scale (HADS) [@Zigmond1983] and anger with a question regarding how angry participants felt during the past week. The PHQ-9 consists of nine items assessing depressive symptoms on a scale ranging from 0 (*not at all*) to 3 (*nearly every day*). The subscale of the HADS measured severity of anxiety with the aid of seven items on a scale ranging from 0 to 3. Regarding the extent of anger felt during the past week, participants were able to choose from five possible responses ranging from *not at all* to *very much*. The items of the anger and anxiety scales refer to the emotional state in the past week, whilst the items of the depression scale refer back two weeks. We defined an indicator of each participant's level of self-reported depression and anxiety as the mean of the respective items.
+For further exploratory analyses the following survey constructs were used:
+Suicidal ideation was assessed by the short form of the Beck Scale for Suicidal Ideation [@beck1993], some items assessed the degree of conflicts during the last week, both at work and at home, and the experience of physical and psychological violence in the last week. The severity of the conflicts was assessed on a 5-point scale, ranging from 0 (*not at all*) to 5 (*very much*). The last conflict-related variable measured the change in the number of conflicts compared to pre-Covid times. Furthermore, participants were asked to specify which aspects of their life they perceived more positively compared to pre-Covid times. 
+The unstandardized survey questions are listed in the Appendix.
+@NIEDERKROTENTHALER202249 provide an extensive descriptive summary of the sample's demographic composition and other surveyed variables. 
+
+## Sentiment Analyses
+
+We analyzed both Twitter and Der Standard postings employing a dictionary-based [Linguistic Inquiry and Word Count, LIWC, @Wolf_2008] and a machine learning-based sentiment analysis tool [German Sentiment, GS, @guhr-etal-2020]. Matching of the text of postings with LIWC dictionaries, and calculation of GS probability scores per posting had already been performed for a previous project [@pellert2021]. This thesis' analyses thus began with raw counts of emotional words per posting (LIWC), or probability scores per sentiment category (GS).
+
+### Linguistic Inquiry and Word Count
+LIWC is one of the most prominent dictionary-based tools, more specifically, a manually created affect association lexicon. Since these analyses only focus on German text we employed the German version of the LIWC [@Wolf_2008]. In the present study, we included the LIWC scales for anger, anxiety, sadness, and positive emotionality. The sum of the anger, anxiety, and sadness scores is defined as the score for negative emotionality. Dictionary-based sentiment techniques count the number of words in a given text contained within each dictionary. Since some categories are hierarchical or overlapping, specific words are included in more than one dictionary.
+In the following analyses, we dichotomized the count data, taking the value 1 if there was at least one word associated with the respective emotion and 0 otherwise. We then calculated the proportion of tweets containing at least one emotion term per day. 
+
+### German Sentiment
+GS is a sentiment analysis tool based on bidirectional encoder representations from transformers (BERT), a deep learning model trained by Google AI [@devlin2019]. The BERT model was trained to predict masked words in text (masked word prediction), or to predict if a sentence does or does not follow a given previous sentence (next sentence prediction) using huge data sets of online texts (e.g., Wikipedia). In this way, it learns about the order and context in which words usually appear. In a next step, GS was developed by continuing to train the existing BERT model on German texts [@guhr-etal-2020] labelled as neutral, negative, and positive in sentiment. Whereas LIWC outputs the counts of words that match with a list and hence does not consider individual weightings of words, GS outputs three real-numbered values, interpretable as probabilities, equalling the model's degree of certainty that a specific post is positive, negative, or neutral in its affective expression. In order to dichotomize these probabilities to either zero or one, a threshold needed to be set. In the present case, we achieved this by visual inspection of the distribution of GS values for the representative timespan from seven days prior to each survey wave onset until $75\,\%$ of participants responded to each survey wave. The threshold for both positive and negative emotionality was determined at 0.9 for both social media platforms (compare Figure \@ref(fig:hist-plot) in Appendix). Hence, a GS positive or negative emotionality score higher than 0.9 led to a posting being categorized as positive or negative respectively.
+
+
+## Statistical Analyses
+
+### Software
+Data analyses were conducted with the aid of `r my_citations`.
+
+### Data Pre-Processing 
+
+#### Survey Variables
+For each survey wave, we calculated the mean over all included participants' scores. As mentioned above, we only included the first $75\,\%$ of the respondents per survey wave. This resulted in 12 data points for each survey construct of interest.
+The same procedure was repeated for the analyses split by gender and federal state with the only difference that the mean is not only grouped by survey wave but also by gender and federal state.
+
+#### Sentiment Measures
+Before analyzing the hypothesized associations, we computed a baseline-corrected fraction of postings containing the emotions of interest within a predefined timespan. Firstly, we calculated a daily mean for each sentiment measure. This mean can be interpreted as the fraction of postings on a specific day that contain words or content expressing a certain emotion or emotional valence. 
+The daily sentiment measures in 2020 were then baseline-corrected for their corresponding average weekday level in 2019 by subtracting and dividing by the baseline. Next, we calculated the fraction of baseline-corrected sentiment measures within predefined timespans. This timespan not only covers each survey waves' dates but additionally includes the period prior to each survey wave to which the different items were referring. More precisely, the timespans are determined by the survey questions: Items of the PHQ-9 refer back two weeks, whereas items that assess anger or anxiety only refer back one week. Therefore, the timespan ranges from seven or alternatively 14 days prior to the onset of a given survey wave until $75\,\%$ of the included participants responded.   
+The demographic information for most of the Twitter postings enables to control for the potentially confounding influence of gender and federal state on the association between survey and sentiment measures. For this set of analyses, we calculated the baseline-corrected sentiment scores as above, separately per gender and region with gender and federal state specific baselines. For instance, to baseline-correct the fraction of anxiety-related tweets for women in Vienna in 2020 on a specific Monday, the baseline was calculated as the average fraction of anxiety-related tweets for women in Vienna over all Mondays in 2019. The baseline-correction is achieved by subtracting and dividing the baseline. Lastly, the means of the respective sentiment measures grouped by gender and federal state over the predefined time periods were computed. Intuitively, the baseline-corrected sentiment measures can be interpreted as percentual change over the baseline.   
+
+### Confirmatory Analyses
+
+#### Spearman's Rank-order Correlation Coefficient
+Firstly, we tested the hypotheses on an aggregate level across whole Austria. We correlated the baseline-corrected fractions of angry, anxious, or sad tweets per survey wave with the respective mean of the anger, anxiety, or depression survey variables for each survey wave. This resulted in 12 data points for these whole Austria analyses. As pre-registered, we computed Spearman's rank correlation coefficients for assessing the association between the sentiment measures and the survey scales [@Spearman1900]. This method was chosen because of its robustness regarding outliers. Furthermore, the small number of data points in the whole Austria analyses does not allow for reliably checking the assumptions for Pearson correlation coefficients. 
+
+\newcommand{\arctanh}{\operatorname{arctanh}}
+
+The analyses encompass multiple significance tests. To correct for multiple comparisons on an $\alpha = 0.05$ level, we used a sequential hypotheses testing procedure, the Holm-Bonferroni method, to control for the family-wise error rate [@holm1979]. This method is more powerful than a simple Bonferroni correction, i.e., it rejects more null hypotheses. The Holm-Bonferroni method orders the p-values of the hypotheses tests increasingly. The first and smallest p-value $p_{(1)}$ is then compared to $\frac{\alpha}{m}$, where $m$ is the number of hypotheses to be tested. In this case, we tested six main hypotheses, therefore, $m = 6.$ If $p_{(1)} \le \frac{\alpha}{m},$ the first hypothesis will be rejected, and the second smallest p-value, $p_{(2)}$, is compared to $\frac{\alpha}{m - 1}$. If $p_{(1)} > \frac{\alpha}{m},$ the procedure stops and all the other hypotheses will not be rejected. In summary, the procedure can only reject hypothesis $H_{(k)},$ if all the other preceding hypotheses $H_{(i)}, \quad i \in \{1, \dots, k -1\}$ have been rejected.
+The corresponding hypotheses are: 
+\begin{equation}
+H_0^{(j)}: \rho_{(j)} \le 0, \quad  H_1^{(j)}: \rho_{(j)} > 0, \quad \forall j \in \{1, \dots, 6\}, (\#eq:holm)
+\end{equation}
+where the index $j$ denotes the respective hypothesis and $\rho_{(j)}$ the Spearman's rank correlation coefficient for the $j'$th smallest p-value.
+
+We used both an analytical and a nonparametric bootstrap approach to compute confidence intervals for the correlation coefficients. The analytic approach uses an adaptation of the Fisher z-transformation to create approximately normally distributed variables. @Woods2007 further developed the adapted Fisher z-transformation suggested by @Bonett2000. We used this more recent adaptation as a first estimate of the p-values and corresponding confidence intervals. More precisely, we employed the variance estimator 
+\begin{equation}
+\hat{\sigma}^2_{\zeta} = \frac{1 + \frac{r^2_s}{2}}{n - 3} (\#eq:variance)
+\end{equation}
+developed by @Bonett2000 where $r_s$ denotes the sample's Spearman's rank-order correlation coefficient. Following the suggestions by @Woods2007 the estimated $(1- \alpha)-$ confidence interval looks as follows.
+\begin{equation}
+\tanh \left(\arctanh(r_s)\mp \sqrt{\hat{\sigma}^2_{\zeta}} t_{\frac{\alpha}{2}, n-2} \right), (\#eq:analyticalci)
+\end{equation}
+where $t_{\frac{\alpha}{2}, n-2}$ denotes the $\frac{\alpha}{2}-$ quantile of the t-distribution with $n-2$ degrees of freedom. 
+
+Although computed for the special case of ordinal data, the simulations of @Ruscio2008 provide further insights in the limitations of analytic methods for calculating confidence intervals for $\rho$: They found that the mean absolute deviance in coverage of the nominal confidence interval for bootstrap-based confidence interval was lower or equal to analytical methods, that heavily rely on approximations to bivariate normal distributions or t-distributions. Moreover, the authors underline that for asymmetric distributions of the estimator, which is the case for $\rho \neq 0$, for small sample sizes and for high values of $\rho$ the assumptions for analytical approaches might not be met. Hence, alternatively to the analytical procedure, confidence intervals of $r_s$ are computed via nonparametric percentile bootstrap [@Efron1979]. Even though results motivate that for higher $\rho$-values as well as lower sample sizes, bootstrapping seem to be more robust, the bootstrap is no cure for small sample sizes. Hence, the resulting confidence interval borders might have limited accuracy. Similarly, to the abovementioned approach by @holm1979 the bootstrapped confidence intervals are corrected for multiple inferences (see @Ludbrook2000 for a similar procedure).
+
+
+#### Adjusting for Confounding with Multiple Linear Regression
+In a second step, we computed multiple linear regressions to adjust for potential confounding effects of gender and federal state. More precisely, a linear model containing only the demographic variables (i.e., gender and federal state) was compared to a linear model containing both the demographic variables and the sentiment measure. Females in Upper Austria manifest the baseline in these models and are therefore integrated in the intercept. In this hierarchical regression, the question can be answered whether the sentiment measure adds further explanatory power for the dependent variable. This was investigated by the F-statistic. Confidence intervals for this statistic and for $\Delta R^2$ were computed by bootstrapping. Since we only had access to the demographic variables for Twitter users, these analyses were limited to sentiment measures of tweets. Correcting for gender and federal state is warranted since prior research has shown effects of gender [@Vikatos2017] and region [@Jaidka2020] on linguistic features in social media postings. We checked the assumptions for linear models by partial correlation plots of the sentiment and survey measure's association and further diagnostic plots such as Q-Q plots of the full model's residuals.
+
+### Exploratory Analyses
+
+#### Does the Time Window Matter?
+One of the exploratory analyses' goals was to investigate the influence of the time window for which we included social media data on the Spearman's rank correlation coefficients. Earlier research showed that using a three-day rolling mean leads to high correlations between self-reported emotional and sentiment measures, in a survey asking about feelings on the previous day [@pellert2021]. We therefore computed the fractions of emotional postings for 28 different timespans: ranging from 14 to one day prior to the start of the survey until $75\,\%$ or alternatively $50\,\%$ of the participants responded. This sensitivity analysis was done for Der Standard and Twitter postings respectively.
+
+We further investigated the potential effect of the time window on the sentiment measures' regression coefficient when controlling for gender and federal state for Twitter only.
+
+#### Best Subset Selection
+Confirmatory analyses were limited to one sentiment measure and its corresponding survey variable, respectively. Yet, both past research and correlation tables of the variables suggested that other sentiment measures might also yield strong associations.
+For example, in research conducted by @pellert2021, measures of positive emotionality derived by LIWC and GS were more informative in self-reported German emotionality measures than negative emotionality. Therefore, we investigated all possible combinations of sentiment measures and demographic variables with a process of best subset selection. Some of the winning models - that minimize a predefined information criterion - are reported. This approach enables to analyze the goodness of fit of the best performing model given the current data. In order to check whether the winning models also converge for different information criteria, best subset selection is performed with the Akaike information criterion [AIC, @Akaike1973; @Akaike1974] and the Bayesian information criterion [BIC, @Schwarz1978] The AIC is defined as
+\begin{equation}
+AIC = 2k - 2 \ln (L), (\#eq:aic)
+\end{equation} 
+where k denotes the number of included parameters and $\ln(L)$ denotes the maximized value of the log-likelihood of a given model. Similarly, the BIC is defined as
+\begin{equation}
+BIC = k \ln(n) - 2 \ln (L). (\#eq:bic)
+\end{equation}
+Both AIC and BIC can be used to assess relative goodness of fit between models. The better the fit, the smaller the criterion. BIC tends to choose sparser models since in most cases $2k < k \ln(n)$ holds. 
+
+#### Mixed Factor Analysis and Multiple Linear Regression
+Since the survey included various other psychological characteristics further exploratory analyses aimed at analyzing their association with the emotion and sentiment measures. To avoid the need to conduct the analyses for each survey construct individually, we reduced the dimensionality of various variables of interest employing a mixed factor analysis. Reducing the dimensionality of data increases its interpretability and statistical power while minimizing the risk of overfitting and issues concerning multicollinearity [@Kosinski2016]. More specifically, we included 18 survey variables. Five of the variables measured the participant's conflict-related experiences on an ordinal scale. Specifically, we included the variables conflict with family or partner, conflict at work, experience of psychological or physical domestic violence and change of conflicts versus pre-Covid times. Another variable measured suicidal ideation on an ordinal scale. The remaining variables assessed whether various positive life outcomes changed compared to pre-Covid in a binary response format. Further potential variables of interest were not assessed in each survey wave and hence not included. The factor analysis based on polychoric correlations [@HolgadoTello2010] required three steps:  First, we computed tetrachoric correlations [@Pearson1900] for binary variables and polytomous correlations [@Drasgow1988] for ordinal variables. These types of correlations presume the existence of an underlying latent continuous factor that is normally distributed. Generally, polychoric correlations have been shown to be rather robust concerning the assumption of normality [@Coenders1997]. Contrarily to the Pearson's correlation coefficient, tetrachoric and polychoric correlations generally do not have a downward bias in estimating the true correlation of the latent variable when the normality assumption is met [@HolgadoTello2010]. 
+
+Second, based on the eigenvalues of the resulting correlation matrix, the number of factors to include in the analysis is predetermined. The scree plot [@Cattell1966], the Kaiser criterion [@Kaiser1960] and parallel analysis [@Horn1965; @Glorfeld1995] were employed and checked for convergence. In a scree plot the eigenvalues are plotted against $k,$ i.e., the number of factors and the "knee" of the plot identifies the number of factors to retain. In contrast, the number of eigenvalues exceeding 1 determines the number of factors for the Kaiser criterion. Furthermore, parallel analyses simulate new data derived from uncorrelated random data and then compares the simulated to the observed eigenvalues. In the adaptation by @Glorfeld1995 the number of retained factors is given by the number of observed eigenvalues that exceed the 95th percentile of the simulated data's eigenvalues. In the third step, we computed the factor analysis on the previously calculated correlation coefficients. In order to ease the interpretability of the resulting factors, we applied a varimax rotation. 
+Next, we calculated Spearman's rank-order correlations between the resulting factor scores and the different sentiment measures for both Twitter and Der Standard.   

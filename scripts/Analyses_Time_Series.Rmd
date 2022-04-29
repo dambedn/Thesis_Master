@@ -1,0 +1,984 @@
+---
+title: "Graphics"
+output: pdf_document
+---
+
+# Time Series Survey
+In this document, we will plot the data in time series formats. Both, the survey data is plotted as boxplots per survey wave and the means are also plotted per survey wave. Furthermore, we will plot the emotion and sentiment measures per survey wave. Lastly, we will plot the emotion and sentiment measure per survey wave split by gender and two example federal states - Vienna and Upper Austria.
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warnings = FALSE, fig.width=11, fig.height=8, fig.align = "center")
+```
+
+```{r libraries}
+library(tidyverse)
+library(gridExtra)
+library(data.table)
+library(psych) #for correlation tables with p correction
+```
+
+Not fully reproducible! Some of the plots are built on raw survey data.
+```{r import and transform}
+#load("../data/d2_75.RData") # survey data until 75% responded
+load("../data/d2_vars.Rdata") # survey means per wave of main variables
+#load("../data/d2_75_date.RData") #survey date range for each wave
+load("../data/d2_vars_50.Rdata") # survey data until 50% responded
+# daily baseline-corrected GS & LIWC Der Standard & Twitter values
+load("../data/gs_stand_corrected.RData")
+load("../data/liwc_stand_corrected.RData")
+load("../data/gs_twitter_corrected.RData")
+load("../data/liwc_twitter_corrected.RData")
+# daily baseline-corrected Twitter means grouped by federal state and gender
+load("../data/gs_daily_corrected.RData")
+load("../data/liwc_daily_corrected.RData")
+
+
+# pivot
+names(d2_vars)[1]<- "dates"
+d2_vars_pivot <- pivot_longer(d2_vars[, 1:4], cols = 2:4)
+
+# filter dates (only 2021 values)
+gs_stand_corrected <- gs_stand_corrected %>%
+  filter(date < "2021-01-01")
+liwc_stand_corrected <- liwc_stand_corrected %>%
+  filter(date < "2021-01-01")
+gs_twitter_corrected <- gs_twitter_corrected %>%
+  filter(date < "2021-01-01")
+liwc_twitter_corrected <- liwc_twitter_corrected %>%
+  filter(date < "2021-01-01")
+
+gs_daily_corrected$date <- format(gs_daily_corrected$date)
+liwc_daily_corrected$date <- format(gs_daily_corrected$date)
+
+gs_daily_corrected <- gs_daily_corrected %>%
+  filter((date < "2021-01-01") & (date > "2019-12-31"))
+liwc_daily_corrected <- liwc_daily_corrected %>%
+  filter((date < "2021-01-01") & (date > "2019-12-31"))
+
+
+# prepare format for ggplot
+
+# smooth daily data: rolling mean over three consecutive days
+# GS Der Standard
+gs_stand_corrected_smooth <- gs_stand_corrected %>%
+  mutate(positive.corrected = zoo::rollmean(positive.corrected, k = 3, fill = NA),
+         negative.corrected = zoo::rollmean(negative.corrected, k = 3, fill = NA))
+# GS Twitter
+gs_twitter_corrected_smooth <- gs_twitter_corrected %>%
+  mutate(positive.corrected = zoo::rollmean(positive.corrected, k = 3, fill = NA),
+         negative.corrected = zoo::rollmean(negative.corrected, k = 3, fill = NA))
+# LIWC Der Standard
+liwc_stand_corrected_smooth <- liwc_stand_corrected %>%
+  summarize(date=date, "Negative affect Der Standard" = zoo::rollmean(Negemo.corrected, k = 3, fill = NA), 
+            "Positive affect Der Standard" = 
+              zoo::rollmean(Posemo.corrected, k = 3, fill = NA),
+         "Anxiety Der Standard" = zoo::rollmean(Anx.corrected, k = 3, fill = NA),
+         "Anger Der Standard" = zoo::rollmean(Anger.corrected, k = 3, fill = NA),
+         "Sadness Der Standard" = zoo::rollmean(Sad.corrected, k = 3, fill = NA))
+# LIWC Twitter
+liwc_twitter_corrected_smooth <- liwc_twitter_corrected %>%
+  summarize(date=date, "Negative affect Twitter" =
+              zoo::rollmean(Negemo.corrected, k = 3, fill = NA), 
+            "Positive affect Twitter" = 
+              zoo::rollmean(Posemo.corrected, k = 3, fill = NA),
+            "Anxiety Twitter" = zoo::rollmean(Anx.corrected, k = 3, fill = NA),
+            "Anger Twitter" = zoo::rollmean(Anger.corrected, k = 3, fill = NA),
+            "Sadness Twitter" = zoo::rollmean(Sad.corrected, k = 3, fill = NA))
+# compute rolling mean per federal state and gender for Twitter data
+# GS
+gs_daily_corrected_smooth <- gs_daily_corrected %>%
+  group_by(gender, federal_state) %>%
+  summarize(date = date, "Positive GS Twitter" =
+              zoo::rollmean(positive.corrected, k = 3, fill = NA),
+         "Negative GS Twitter" = 
+           zoo::rollmean(negative.corrected, k = 3, fill = NA))
+# LIWc
+liwc_daily_corrected_smooth <- liwc_daily_corrected %>%
+  group_by(gender, federal_state) %>%
+  summarize(date=date, "Negative LIWC Twitter" =
+              zoo::rollmean(Negemo.corrected, k = 3, fill = NA), 
+            "Positive LIWC Twitter" = 
+              zoo::rollmean(Posemo.corrected, k = 3, fill = NA),
+            "Anxiety Twitter" = zoo::rollmean(Anx.corrected, k = 3, fill = NA),
+            "Anger Twitter" = zoo::rollmean(Anger.corrected, k = 3, fill = NA),
+            "Sadness Twitter" = zoo::rollmean(Sad.corrected, k = 3, fill = NA))
+
+# negative emotion Der Standard
+df_negative_stand <- cbind.data.frame(gs_stand_corrected_smooth[, -(2:5)], 
+                                      liwc_stand_corrected_smooth[, 2])
+names(df_negative_stand)[2:3] <- c("Negative GS Der Standard", 
+                                   "Negative LIWC Der Standard")
+
+
+# negative emotion Twitter
+df_negative_twitter<- cbind.data.frame(gs_twitter_corrected_smooth[, -(2:5)], 
+                                       liwc_twitter_corrected_smooth[, 2])
+names(df_negative_twitter)[2:3] <- c("Negative GS Twitter", 
+                                     "Negative LIWC Twitter")
+
+# bind negative emotion Twitter and Der Standard for negative affect plot
+df_negative <- cbind.data.frame(df_negative_stand, df_negative_twitter[, -1])
+df_negative <- pivot_longer(df_negative, cols = 2:5) 
+# for plots only focusing on Der Standard/ Twitter
+df_negative_stand <- pivot_longer(df_negative_stand, cols = 2:3)
+df_negative_twitter <- pivot_longer(df_negative_twitter, cols = 2:3)
+
+
+
+# positive emotion Der Standard
+df_positive_stand <- cbind.data.frame(gs_stand_corrected_smooth[, c(1, 5)], 
+                                      liwc_stand_corrected_smooth[, 3])
+names(df_positive_stand)[2:3] <- c("Positive GS Der Standard", 
+                                   "Positive LIWC Der Standard")
+
+
+# posiive emotion Twitter
+df_positive_twitter<- cbind.data.frame(gs_twitter_corrected_smooth[, c(1, 5)], 
+                                       liwc_twitter_corrected_smooth[, 3])
+names(df_positive_twitter)[2:3] <- c("Positive GS Twitter", 
+                                     "Positive LIWC Twitter")
+
+# bind positive emotion Twitter and Der Standard for negative affect plot
+df_positive <- cbind.data.frame(df_positive_stand, df_positive_twitter[, -1])
+df_positive <- pivot_longer(df_positive, cols = 2:5) 
+# for plots only focusing on Der Standard/ Twitter
+df_positive_stand <- pivot_longer(df_positive_stand, cols = 2:3)
+df_positive_twitter <- pivot_longer(df_positive_twitter, cols = 2:3)
+
+# Anger, anxiey, sadness Der Standard
+dfliwc_stand <- liwc_stand_corrected_smooth[, -c(2:3)]
+names(dfliwc_stand)[2:4] <- c("Anxiety Der Standard", 
+                                      "Anger Der Standard", "Sadness Der Standard")
+
+# Anger, anxiey, sadness Twitter
+dfliwc_twitter <- liwc_twitter_corrected_smooth[, -c(2:3)]
+names(dfliwc_twitter)[2:4] <- c("Anxiety Twitter", "Anger Twitter", 
+                                        "Sadness Twitter")
+# bind positive emotion Twitter and Der Standard for negative affect plot
+df_emotions <- cbind.data.frame(dfliwc_stand, dfliwc_twitter[, -1])
+df_emotions <- pivot_longer(df_emotions, cols = 2:5) 
+
+# for plots only focusing on Der Standard/ Twitter
+dfliwc_stand <- pivot_longer(dfliwc_stand, cols =  2:4)
+dfliwc_twitter <- pivot_longer(dfliwc_twitter, cols = 2:4)
+
+# LIWC Anger, anxiety, sadness, negative, GS negative, positive Twitter grouped by federal state and gender
+df_grouped_twitter <- cbind.data.frame(gs_daily_corrected_smooth, 
+                                       liwc_daily_corrected_smooth[, 4:8])
+levels(df_grouped_twitter$gender) <- c("Female", "Male")
+
+# subset only Upper Austria and Vienna to compare against each other
+df_grouped_twitter_select <- df_grouped_twitter %>%
+  filter(federal_state %in% c("Wien", "Oberoesterreich"))
+df_grouped_twitter_select$federal_state <- factor(df_grouped_twitter_select$federal_state)
+levels(df_grouped_twitter_select$federal_state) <- c("Upper Austria", "Vienna")
+
+# only subset variables used in confirmatory analyses for not each combination will be plotted grouped by gender and region
+df_grouped_twitter_select <- df_grouped_twitter_select[c("gender", "federal_state", "date", "Negative GS Twitter", "Anxiety Twitter", "Anger Twitter", "Sadness Twitter")]
+
+df_group_twitter_facet <- df_grouped_twitter_select
+df_group_twitter_facet$date <- as.Date(df_group_twitter_facet$date)
+
+# for plots without facet_wrap:
+df_grouped_twitter_select <- df_grouped_twitter_select %>%
+  pivot_wider(names_from = c("gender", "federal_state"), values_from = c("Negative GS Twitter", "Anxiety Twitter", "Anger Twitter", "Sadness Twitter"))
+
+df_grouped_twitter_select <- pivot_longer(df_grouped_twitter_select, cols = 2:ncol(df_grouped_twitter_select))
+df_grouped_twitter_select$date <- as.Date(df_grouped_twitter_select$date)
+
+# change names
+df_grouped_twitter_select$name <- gsub(pattern = "Twitter_", replacement = "",
+                                       x = df_grouped_twitter_select$name)
+df_grouped_twitter_select$name <- gsub(pattern = "_", replacement = " ",
+                                       x = df_grouped_twitter_select$name)
+
+
+#df_grouped_twitter_select_long <- pivot_longer(df_grouped_twitter_select, col =4:ncol(df_grouped_twitter_select))
+#table(df_grouped_twitter_select$federal_state)
+#df_grouped_twitter_select_long$date <- as.Date(df_grouped_twitter_select_long$date)
+```
+
+
+Not reproducible since raw survey data (i.e., d2_75 is not made available.)
+```{r plot, fig.width = 10, fig.heigth = 15, eval = FALSE}
+load("../data/d2_75.RData")
+# change levels name solely to the dates in order to display them more nicely in the boxplot
+# d2_75$wave_plot <- do.call(rbind, str_split(d2_75$wave, pattern = " "))[, 3]
+# d2_75$wave_plot <- as.factor(d2_75$wave_plot)
+# d2_75$wave_plot <- d2_75_date
+# d2_75$wave_plot <- as.factor(d2_75$wave_plot)
+
+d2_75$wave_plot <- d2_75$wave
+levels(d2_75$wave_plot) <- 1:12
+
+plt_anx <- ggplot(data = d2_75, aes(x = fct_inorder(wave_plot), y = anxiety)) + 
+  geom_boxplot() + 
+  xlab("") + ylab("Anxiety") +
+  #papaja::theme_apa(box = TRUE)+
+  # stat_summary(fun = mean,
+  #              geom = "point",
+  #              col = "red",
+  #              show.legend=TRUE) +
+  # scale_shape_manual(name="",
+  #                  values=c("Mean"="")) +
+  theme_bw() +
+  # theme(legend.position  = c(0.85, 0.93),
+  #       legend.direction = "horizontal")+
+  theme(axis.text=element_text(size=19)) +
+  theme(text = element_text(size = 19))
+
+ggsave("../plots/boxplot_anx.pdf", plt_anx, width = 11, height = 3)
+
+
+plt_ang <- ggplot(data = d2_75, aes(x = fct_inorder(wave_plot),
+                                    y = as.numeric(anger_last_week) - 1)) + 
+  geom_boxplot() + 
+  xlab("") + ylab("Anger")+
+  # stat_summary(fun = mean, 
+  #              geom = "point", 
+  #              col = "red")+
+  #papaja::theme_apa(box = TRUE)+
+  theme_bw()+
+  theme(axis.text=element_text(size=19)) +
+  theme(text = element_text(size = 19))
+
+ggsave("../plots/boxplot_ang.pdf", plt_ang, width = 11, height = 3)
+
+
+plt_dep <- ggplot(data = d2_75, aes(x = fct_inorder(wave_plot), y = depression)) +
+  geom_boxplot() +
+  xlab("Survey Wave") + ylab("Depression")+
+  # stat_summary(fun = mean,
+  #              geom = "point",
+  #              col = "red")+
+  #papaja::theme_apa(box = TRUE)+
+  theme_bw()+
+  theme(axis.text=element_text(size=19))+
+  theme(text = element_text(size = 19))
+
+ggsave("../plots/boxplot_dep.pdf", plt_dep, width = 11, height = 3)
+
+  
+  
+# plt_survey <- grid.arrange(plt_anx, plt_ang, plt_dep)
+# 
+# # save
+# ggsave("../plots/boxplotssurvey.pdf", plt_survey, width = 11, height = 12)
+
+```
+
+Not reproducible since raw survey data (i.e., d2_75 is not made available.)
+
+```{r plot 2, fig.width = 10, eval = FALSE}
+# time-series of main survey variables' means
+plt_anx_2 <- ggplot(data = d2_75, aes(x = fct_inorder(wave_plot), y = anxiety)) + 
+  xlab("") + ylab("Anxiety") +
+  theme_bw()+
+  theme(axis.text=element_text(size=19))+
+  theme(text = element_text(size = 19))
+
+# mean_cl_normal computes both the sample mean and 95 %confidence limits (based on t distribution)
+plt_anx_2 <- plt_anx_2 + stat_summary(fun= mean, geom= "point" ,
+                           color="red") +
+              stat_summary(fun.data = mean_cl_normal , 
+                           geom = "errorbar")
+ggsave("../plots/plt_anx_2.pdf", plt_anx_2, width = 11, height = 4)
+
+
+plt_ang_2 <- ggplot(data = d2_75, aes(x = fct_inorder(wave_plot), y = as.numeric(anger_last_week) - 1)) + 
+  xlab("") + ylab("Anger") +
+  theme_bw()+
+  theme(axis.text=element_text(size=19))+
+  theme(text = element_text(size = 19))+
+  stat_summary(fun= mean, geom= "point" ,
+                           color="red") +
+  stat_summary(fun.data = mean_cl_normal,
+               geom = "errorbar")
+
+ggsave("../plots/plt_ang_2.pdf", plt_ang_2, width = 11, height = 4)
+
+plt_dep_2 <- ggplot(data = d2_75, aes(x = fct_inorder(wave_plot), y = depression)) + 
+  theme_bw()+
+  xlab("Survey Wave") + ylab("Depression") + 
+  #scale_x_date(date_breaks="1 month", date_labels = "%b") + 
+  theme(axis.text=element_text(size=19))+
+  theme(text = element_text(size = 19))+
+  stat_summary(fun= mean, geom= "point" ,
+                           color="red") +
+  stat_summary(fun.data = mean_cl_normal,
+               geom = "errorbar")
+ggsave("../plots/plt_dep_2.pdf", plt_dep_2, width = 11, height = 4)
+
+
+# plt_survey_2<- grid.arrange(plt_anx_2, plt_ang_2, plt_dep_2)
+# 
+# plt_survey_2
+# 
+# ggsave("../plots/meanssurvey.pdf", plt_survey_2, width = 11, height = 12)
+```
+
+# Time Series Sentiment
+```{r}
+# settings 
+labelsize <- 11
+axisfontsize <- 14
+
+# set line colors
+# choose Color Universal Design (https://jfly.uni-koeln.de/color/)
+
+negaffect_cols <- c("Negative GS Der Standard" = "#CC79A7", 
+                   "Negative LIWC Der Standard"= "#D55E00",
+                   "Negative GS Twitter" = "#0072B2",
+                   "Negative LIWC Twitter" = "#56B4E9")
+
+posaffect_cols <- c("Positive GS Der Standard" = "#CC79A7", 
+                   "Positive LIWC Der Standard" = "#D55E00",
+                   "Positive GS Twitter" = "#0072B2",
+                   "Positive LIWC Twitter" = "#56B4E9")
+
+emo_cols_stand <- c("Anxiety Der Standard" = "#CC79A7", 
+              "Anger Der Standard" = "#0072B2",
+              "Sadness Der Standard" = "#E69F00")
+
+emo_cols_twit <- c("Anxiety Twitter" = "#CC79A7",
+              "Anger Twitter" = "#0072B2",
+              "Sadness Twitter" = "#E69F00")
+
+# set linetype
+negaffect_lty <- c("Negative GS Der Standard" = "solid",
+                   "Negative LIWC Der Standard" = "longdash",
+                   "Negative GS Twitter" = "dotted",
+                   "Negative LIWC Twitter" = "dashed")
+
+posaffect_lty <- c("Positive GS Der Standard" = "solid", 
+                   "Positive LIWC Der Standard" = "longdash",
+                   "Positive GS Twitter" = "dotted",
+                   "Positive LIWC Twitter" = "dashed")
+
+emo_lty_stand <- c("Anxiety Der Standard" = "solid", 
+              "Anger Der Standard" = "longdash",
+              "Sadness Der Standard" = "dashed")
+
+emo_lty_twit <- c("Anxiety Twitter" = "solid",
+              "Anger Twitter" = "longdash",
+              "Sadness Twitter" = "dashed")
+
+```
+
+```{r}
+# Plots
+# smoothed values negative affect liwc vs. GS ####
+plt_1 <- ggplot(alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.Date("2020-02-20"), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_text(aes(x = as.Date("2020-02-20")-30, y = 20), label = "(1) Hanau terrorist \n attack")+
+  geom_vline(xintercept = as.Date("2020-02-25"), colour = "black",
+             linetype=2) +#first case
+  geom_text(aes(x = as.Date("2020-02-25")+25, y = 30), label = "(2) First Covid \n case")+
+  geom_vline(xintercept = as.Date("2020-03-15"), colour = "black",
+             linetype=3) + #lockdown
+  geom_text(aes(x = as.Date("2020-03-15")+16,y = 35), label = "(3) First \n lockdown")+
+  geom_vline(xintercept = as.Date("2020-04-28"), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_text(aes(x = as.Date("2020-04-28")+8, y = 25), label = "(4) Anxiety \n     reports")+
+  geom_vline(xintercept = as.Date("2020-05-31"), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_text(aes(x = as.Date("2020-05-31")+36, y = 40), label = "(5) Black Lives Matter")+
+  geom_vline(xintercept = as.Date("2020-11-02"), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_text(aes(x = as.Date("2020-11-02")-42,y = 35), label = "(6) Vienna terrorist attack")+
+  geom_line(data = df_negative, aes(x = date, y= 100 * value, 
+                colour = name, linetype = name))+
+  #axis labels
+  ylab("Social media % change vs baseline")  +
+  #ggtitle("Negative Affect")+ 
+  scale_fill_manual(values = negaffect_cols)+
+  scale_colour_manual(values = negaffect_cols)+
+  #scale_shape_manual(values = "") +
+  scale_linetype_manual(values = negaffect_lty)+
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="right",
+                    legend.text = element_text(size=8),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  guides(color=guide_legend(ncol=1, byrow=TRUE))+
+  #xlab("Time") + 
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  geom_hline(yintercept = 0, colour = "grey50")  #mean line
+plt_1
+ggsave("../plots/negative_affect_smooth.pdf", plot = plt_1,  width=11, height=5)
+
+# Events:
+# : Terrorist attack in Hanau on 2020-02-25
+# : First Covid-19 case on 2020-02-25
+# : First death from Covid-19 on 2020-03-12
+# : The first press conference on Covid-19, announcing bans of large public events and university closures as first measures, on 2020-03-10
+# : Strict social distancing measures announced on 2020-03-15, starting on the day after
+# : Press releases about considerations of public agencies to stir anxiety of the population at the begin of the pandemic 2020-04-28
+# : Black lives matter: Demonstrations against police brutality on 2020-05-31
+# : Terrorist attack in Vienna on 2020-11-02
+```
+
+```{r}
+# smoothed values positive affect liwc vs. GS ####
+plt_2 <- ggplot(alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.Date("2020-02-20"), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_text(aes(x = as.Date("2020-02-20")-30, y = 20), label = "(1) Hanau terrorist \n attack")+
+  geom_vline(xintercept = as.Date("2020-02-25"), colour = "black",
+             linetype=2) +#first case
+  geom_text(aes(x = as.Date("2020-02-25")+25, y = 25), label = "(2) First Covid \n case")+
+  geom_vline(xintercept = as.Date("2020-03-15"), colour = "black",
+             linetype=3) + #lockdown
+  geom_text(aes(x = as.Date("2020-03-15")+16,y = 35), label = "(3) First \n lockdown")+
+  geom_vline(xintercept = as.Date("2020-04-28"), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_text(aes(x = as.Date("2020-04-28")+8, y = 25), label = "(4) Anxiety \n     reports")+
+  geom_vline(xintercept = as.Date("2020-05-31"), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_text(aes(x = as.Date("2020-05-31")+36, y = 40), label = "(5) Black Lives Matter")+
+  geom_vline(xintercept = as.Date("2020-11-02"), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_text(aes(x = as.Date("2020-11-02")-42,y = 35), label = "(6) Vienna terrorist attack")+
+  geom_line(data = df_positive, aes(x = date, y= 100 * value, 
+                colour = name, linetype = name))+
+  #axis labels
+  ylab("Social media % change vs baseline")  +
+  #ggtitle("Positive Affect")+ #plot title
+  scale_fill_manual(values = posaffect_cols)+
+  scale_colour_manual(values = posaffect_cols)+
+  scale_linetype_manual(values = posaffect_lty)+
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="right",
+                    legend.text = element_text(size=8),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  guides(color=guide_legend(ncol=1, byrow=TRUE))+
+  xlab("Dates in 2020") + 
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  geom_hline(yintercept = 0, colour = "grey50")  #mean line
+plt_2
+
+ggsave("../plots/positive_affect_smooth.pdf", plot = plt_2,  width=11, height=5)
+
+```
+
+```{r}
+# smoothed values emotions liwc Der Standard ####
+plt_3 <- ggplot(alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.Date("2020-02-20"), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_text(aes(x = as.Date("2020-02-20")-30, y = 40), label = "(1) Hanau terrorist \n attack")+
+  geom_vline(xintercept = as.Date("2020-02-25"), colour = "black",
+             linetype=2) +#first case
+  geom_text(aes(x = as.Date("2020-02-25")+25, y = 40), label = "(2) First Covid \n case")+
+  geom_vline(xintercept = as.Date("2020-03-15"), colour = "black",
+             linetype=3) + #lockdown
+  geom_text(aes(x = as.Date("2020-03-15")+16,y = 50), label = "(3) First \n lockdown")+
+  geom_vline(xintercept = as.Date("2020-04-28"), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_text(aes(x = as.Date("2020-04-28")+8, y = 60), label = "(4) Anxiety \n     reports")+
+  geom_vline(xintercept = as.Date("2020-05-31"), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_text(aes(x = as.Date("2020-05-31")+36, y = 40), label = "(5) Black Lives Matter")+
+  geom_vline(xintercept = as.Date("2020-11-02"), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_text(aes(x = as.Date("2020-11-02")-42,y = 60), label = "(6) Vienna terrorist attack")+
+  geom_line(data = dfliwc_stand, aes(x = date, y= 100 * value, 
+                colour = name, linetype = name))+
+  #axis labels
+  ylab("Social media % change vs baseline")  +
+  # ggtitle("Emotions LIWC Der Standard")+ #plot title
+  scale_fill_manual(values = emo_cols_stand)+
+  scale_colour_manual(values = emo_cols_stand)+
+  scale_linetype_manual(values = emo_lty_stand)+
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="right",
+                    legend.text = element_text(size=8),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  guides(color=guide_legend(ncol=1, byrow=TRUE))+
+  xlab("Dates in 2020") + 
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  geom_hline(yintercept = 0, colour = "grey50")  #mean line
+plt_3
+
+ggsave("../plots/liwc_standard_smooth.pdf", plot = plt_3,  width=11, height=5)
+
+```
+
+```{r}
+# smoothed values emotions liwc Twitter ####
+plt_4 <- ggplot(alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.Date("2020-02-20"), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_text(aes(x = as.Date("2020-02-20")-30, y = 80), label = "(1) Hanau terrorist \n attack")+
+  geom_vline(xintercept = as.Date("2020-02-25"), colour = "black",
+             linetype=2) +#first case
+  geom_text(aes(x = as.Date("2020-02-25")+25, y = 100), label = "(2) First Covid \n case")+
+  geom_vline(xintercept = as.Date("2020-03-15"), colour = "black",
+             linetype=3) + #lockdown
+  geom_text(aes(x = as.Date("2020-03-15")+16,y = 80), label = "(3) First \n lockdown")+
+  geom_vline(xintercept = as.Date("2020-04-28"), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_text(aes(x = as.Date("2020-04-28")+8, y = 60), label = "(4) Anxiety \n     reports")+
+  geom_vline(xintercept = as.Date("2020-05-31"), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_text(aes(x = as.Date("2020-05-31")+35, y = 60), label = "(5) Black Lives Matter")+
+  geom_vline(xintercept = as.Date("2020-11-02"), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_text(aes(x = as.Date("2020-11-02")-42,y = 100), label = "(6) Vienna terrorist attack")+
+  geom_line(data = dfliwc_twitter, aes(x = date, y= 100 * value, 
+                colour = name, linetype = name))+
+  #axis labels
+  ylab("Social media % change vs baseline")  +
+  #xlab("Dates in 2020") +
+  #ggtitle("Emotions LIWC Twitter")+ #plot title
+  scale_fill_manual(values = c(emo_cols_twit))+
+  scale_colour_manual(values = c(emo_cols_twit))+
+  scale_linetype_manual(values = c(emo_lty_twit))+
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="right",
+                    legend.text = element_text(size=8),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  guides(color=guide_legend(ncol=1, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  geom_hline(yintercept = 0, colour = "grey50")  #mean line
+plt_4
+
+ggsave("../plots/liwc_twitter_smooth.pdf", plot = plt_4,  width=11, height=5)
+
+# display plt_3 and plt_4 in one plot
+# plt_emotion <- grid.arrange(plt_3, plt_4, top = "Time Series of the LIWC Emotion Rolling Means in 2020")
+# 
+# plt_emotion
+
+#ggsave("../plots/liwcemotion.pdf", plt_emotion, width = 11, height = 12)
+```
+
+Plots grouped by gender and federal-state. 
+
+```{r}
+# GS negative affect grouped by region and gender with facet wrap
+df_group_twitter_facet_GS <- df_group_twitter_facet[, 1:4]
+# sentiment score in %
+df_group_twitter_facet_GS$`Negative GS Twitter` <- 100* df_group_twitter_facet_GS$`Negative GS Twitter`
+names(df_group_twitter_facet_GS)[4] <- "Negative_GS_Twitter"
+
+plt_negGs_facet <- ggplot(data = df_group_twitter_facet_GS, aes(x = date, 
+                                                          y=Negative_GS_Twitter)
+                    ,alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-20")), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-25")), colour = "black",
+             linetype=2) +#first case
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-15")), colour = "black",
+             linetype=3) + #lockdown
+  geom_vline(xintercept = as.numeric(as.Date("2020-04-28")), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_vline(xintercept = as.numeric(as.Date("2020-05-31")), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_vline(xintercept = as.numeric(as.Date("2020-11-02")), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_line()+
+  facet_wrap(~ gender + federal_state) +
+  #axis labels
+  ylab("Social media % change vs baseline") +
+  xlab("Dates in 2020") +
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position= "bottom",
+                    legend.text = element_text(size=7),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  # guides(color=guide_legend(ncol=2, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  # # ylim(-33, NA)+ # choose only lower limit so that legend fits neatly
+  geom_hline(yintercept = 0, colour = "grey50")+ #mean line
+  geom_text(aes(x = as.Date("2020-02-20")-9, y =50), label = "(1)")+
+  geom_text(aes(x = as.Date("2020-02-25")+9, y = 40), label = "(2)")+
+  geom_text(aes(x = as.Date("2020-03-15")+9,y = 50), label = "(3)")+
+  geom_text(aes(x = as.Date("2020-04-28")+9, y = 40), label = "(4)")+
+  geom_text(aes(x = as.Date("2020-05-31")+9, y = 50), label = "(5)")+
+  geom_text(aes(x = as.Date("2020-11-02")+9,y = 50), label = "(6)")
+plt_negGs_facet
+ggsave("../plots/plt_negGs.pdf", plt_negGs_facet, width = 9, height = 4.5)
+```
+
+```{r}
+# GS negative affect grouped by region and gender with facet wrap
+df_group_twitter_facet_ang <- df_group_twitter_facet[, c(1:3, 6)]
+# sentiment score in %
+df_group_twitter_facet_ang$`Anger Twitter` <- 100* df_group_twitter_facet_ang$`Anger Twitter`
+names(df_group_twitter_facet_ang)[4] <- "Anger_Twitter"
+
+plt_ang_facet <- ggplot(data = df_group_twitter_facet_ang, aes(x = date, 
+                                                          y=Anger_Twitter)
+                    ,alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-20")), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-25")), colour = "black",
+             linetype=2) +#first case
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-15")), colour = "black",
+             linetype=3) + #lockdown
+  geom_vline(xintercept = as.numeric(as.Date("2020-04-28")), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_vline(xintercept = as.numeric(as.Date("2020-05-31")), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_vline(xintercept = as.numeric(as.Date("2020-11-02")), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_line()+
+  facet_wrap(~ gender + federal_state) +
+  #axis labels
+  ylab("Social media % change vs baseline") +
+  xlab("Dates in 2020") +
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position= "bottom",
+                    legend.text = element_text(size=7),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  # guides(color=guide_legend(ncol=2, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  # # ylim(-33, NA)+ # choose only lower limit so that legend fits neatly
+  geom_hline(yintercept = 0, colour = "grey50")+ #mean line
+  geom_text(aes(x = as.Date("2020-02-20")-9, y =65), label = "(1)")+
+  geom_text(aes(x = as.Date("2020-02-25")+9, y = 55), label = "(2)")+
+  geom_text(aes(x = as.Date("2020-03-15")+9,y = 50), label = "(3)")+
+  geom_text(aes(x = as.Date("2020-04-28")+9, y = 40), label = "(4)")+
+  geom_text(aes(x = as.Date("2020-05-31")+9, y = 55), label = "(5)")+
+  geom_text(aes(x = as.Date("2020-11-02")+9,y = 65), label = "(6)")
+plt_ang_facet
+ggsave("../plots/plt_anger.pdf", plt_ang_facet, width = 9, height = 4.5)
+```
+
+```{r}
+# GS negative affect grouped by region and gender with facet wrap
+df_group_twitter_facet_anx <- df_group_twitter_facet[, c(1:3, 5)]
+# sentiment score in %
+df_group_twitter_facet_anx$`Anxiety Twitter` <- 100* df_group_twitter_facet_anx$`Anxiety Twitter`
+names(df_group_twitter_facet_anx)[4] <- "Anxiety_Twitter"
+
+plt_anx_facet <- ggplot(data = df_group_twitter_facet_anx, aes(x = date, 
+                                                          y=Anxiety_Twitter)
+                    ,alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-20")), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-25")), colour = "black",
+             linetype=2) +#first case
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-15")), colour = "black",
+             linetype=3) + #lockdown
+  geom_vline(xintercept = as.numeric(as.Date("2020-04-28")), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_vline(xintercept = as.numeric(as.Date("2020-05-31")), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_vline(xintercept = as.numeric(as.Date("2020-11-02")), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_line()+
+  facet_wrap(~ gender + federal_state) +
+  #axis labels
+  ylab("Social media % change vs baseline") +
+  xlab("Dates in 2020") +
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position= "bottom",
+                    legend.text = element_text(size=7),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  # guides(color=guide_legend(ncol=2, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  # # ylim(-33, NA)+ # choose only lower limit so that legend fits neatly
+  geom_hline(yintercept = 0, colour = "grey50")+ #mean line
+  geom_text(aes(x = as.Date("2020-02-20")-9, y =90), label = "(1)")+
+  geom_text(aes(x = as.Date("2020-02-25")+9, y = 120), label = "(2)")+
+  geom_text(aes(x = as.Date("2020-03-15")+9,y = 90), label = "(3)")+
+  geom_text(aes(x = as.Date("2020-04-28")+9, y = 150), label = "(4)")+
+  geom_text(aes(x = as.Date("2020-05-31")+9, y = 100), label = "(5)")+
+  geom_text(aes(x = as.Date("2020-11-02")-12,y = 150), label = "(6)")
+plt_anx_facet
+ggsave("../plots/plt_anxiety.pdf", plt_anx_facet, width = 9, height = 4.5)
+
+```
+
+```{r}
+# GS negative affect grouped by region and gender with facet wrap
+df_group_twitter_facet_sad <- df_group_twitter_facet[, c(1:3, 7)]
+# sentiment score in %
+df_group_twitter_facet_sad$`Sadness Twitter` <- 100* df_group_twitter_facet_sad$`Sadness Twitter`
+names(df_group_twitter_facet_sad)[4] <- "Sadness_Twitter"
+
+plt_sad_facet <- ggplot(data = df_group_twitter_facet_sad, aes(x = date, 
+                                                          y=Sadness_Twitter)
+                    ,alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-20")), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-25")), colour = "black",
+             linetype=2) +#first case
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-15")), colour = "black",
+             linetype=3) + #lockdown
+  geom_vline(xintercept = as.numeric(as.Date("2020-04-28")), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_vline(xintercept = as.numeric(as.Date("2020-05-31")), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_vline(xintercept = as.numeric(as.Date("2020-11-02")), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_line()+
+  facet_wrap(~ gender + federal_state) +
+  #axis labels
+  ylab("Social media % change vs baseline") +
+  xlab("Dates in 2020") +
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position= "bottom",
+                    legend.text = element_text(size=7),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  # guides(color=guide_legend(ncol=2, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  # # ylim(-33, NA)+ # choose only lower limit so that legend fits neatly
+  geom_hline(yintercept = 0, colour = "grey50")+ #mean line
+  geom_text(aes(x = as.Date("2020-02-20")-9, y =60), label = "(1)")+
+  geom_text(aes(x = as.Date("2020-02-25")+9, y = 50), label = "(2)")+
+  geom_text(aes(x = as.Date("2020-03-15")+9,y = 60), label = "(3)")+
+  geom_text(aes(x = as.Date("2020-04-28")+9, y = 100), label = "(4)")+
+  geom_text(aes(x = as.Date("2020-05-31")+9, y = 75), label = "(5)")+
+  geom_text(aes(x = as.Date("2020-11-02")-12,y = 85), label = "(6)")
+plt_sad_facet
+ggsave("../plots/plt_sadness.pdf", plt_sad_facet, width = 9, height = 4.5)
+```
+
+
+Plots without facet wrap (not plotted in thesis):
+
+```{r, eval = FALSE}
+# plots for data grouped by federal state and gender 
+# only available for Twitter data!
+# create four plots for Negative GS, Anxiety, Anger and Sadness
+df_grouped_negGS <- df_grouped_twitter_select %>%
+  filter(str_detect(name, "Negative")) 
+
+df_grouped_anx <- df_grouped_twitter_select %>%
+  filter(str_detect(name, "Anxiety"))
+
+df_grouped_ang <- df_grouped_twitter_select %>%
+  filter(str_detect(name, "Anger"))
+
+df_grouped_sad <- df_grouped_twitter_select %>%
+  filter(str_detect(name, "Sadness"))
+
+# settings 
+# settings 
+labelsize <- 11
+axisfontsize <- 13
+
+# set line colors
+negaffect_cols <- c("Negative GS Female Upper Austria" = "#CC79A7", 
+                   "Negative GS Female Vienna"= "#D55E00",
+                   "Negative GS Male Upper Austria" = "#0072B2",
+                   "Negative GS Male Vienna" = "#56B4E9")
+
+anxiety_cols <- c("Anxiety Female Upper Austria" = "#CC79A7", 
+                   "Anxiety Female Vienna"= "#D55E00",
+                   "Anxiety Male Upper Austria" = "#0072B2",
+                   "Anxiety Male Vienna" = "#56B4E9")
+
+anger_cols <- c("Anger Female Upper Austria" = "#CC79A7", 
+                   "Anger Female Vienna"= "#D55E00",
+                   "Anger Male Upper Austria" = "#0072B2",
+                   "Anger Male Vienna" = "#56B4E9")
+
+sad_cols <- c("Sadness Female Upper Austria" = "#CC79A7", 
+                   "Sadness Female Vienna"= "#D55E00",
+                   "Sadness Male Upper Austria" = "#0072B2",
+                   "Sadness Male Vienna" = "#56B4E9")
+
+# set linetype
+negaffect_lty <- c("Negative GS Female Upper Austria" = "solid", 
+                   "Negative GS Female Vienna"= "longdash",
+                   "Negative GS Male Upper Austria" = "dotted",
+                   "Negative GS Male Vienna" = "dashed")
+  
+anxiety_lty <- c("Anxiety Female Upper Austria" = "solid", 
+                   "Anxiety Female Vienna"= "longdash",
+                   "Anxiety Male Upper Austria" = "dotted",
+                   "Anxiety Male Vienna" = "dashed")
+  
+anger_lty <- c("Anger Female Upper Austria" = "solid", 
+                   "Anger Female Vienna"= "longdash",
+                   "Anger Male Upper Austria" = "dotted",
+                   "Anger Male Vienna" = "dashed")
+
+sad_lty <- c("Sadness Female Upper Austria" = "solid", 
+                   "Sadness Female Vienna"= "longdash",
+                   "Sadness Male Upper Austria" = "dotted",
+                   "Sadness Male Vienna" = "dashed")
+```
+
+```{r, eval = FALSE}
+# GS negative affect grouped by region and gender
+plt_negGs <- ggplot(data = df_grouped_negGS, aes(x = date, y= 100 * value, 
+                colour = name, linetype = name),alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-20")), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-25")), colour = "black",
+             linetype=2) +#first case
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-15")), colour = "black",
+             linetype=3) + #lockdown
+  geom_vline(xintercept = as.numeric(as.Date("2020-04-28")), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_vline(xintercept = as.numeric(as.Date("2020-05-31")), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_vline(xintercept = as.numeric(as.Date("2020-11-02")), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_line()+
+  #axis labels
+  ylab("Social media % change vs baseline")  +
+  #xlab("Dates in 2020") +
+  #ggtitle("GS Negative Affect")+ #plot title
+  scale_fill_manual(values = negaffect_cols)+
+  scale_colour_manual(values = negaffect_cols)+
+  scale_linetype_manual(values = negaffect_lty)+
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position= "bottom",
+                    legend.text = element_text(size=7),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  guides(color=guide_legend(ncol=2, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  # ylim(-33, NA)+ # choose only lower limit so that legend fits neatly
+  geom_hline(yintercept = 0, colour = "grey50")  #mean line
+#plt_negGs
+```
+
+```{r, eval = FALSE}
+# LIWC anger grouped by region and gender
+plt_anger <- ggplot(data = df_grouped_ang, aes(x = date, y= 100 * value, 
+                colour = name, linetype = name),alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-20")), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-25")), colour = "black",
+             linetype=2) +#first case
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-15")), colour = "black",
+             linetype=3) + #lockdown
+  geom_vline(xintercept = as.numeric(as.Date("2020-04-28")), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_vline(xintercept = as.numeric(as.Date("2020-05-31")), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_vline(xintercept = as.numeric(as.Date("2020-11-02")), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_line()+
+  #axis labels
+  ylab("Social media % change vs baseline")  +
+  #xlab("Dates in 2020") +
+  #ggtitle("LIWC Anger")+ #plot title
+  scale_fill_manual(values = anger_cols)+
+  scale_colour_manual(values = anger_cols)+
+  scale_linetype_manual(values = anger_lty)+
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="bottom",
+                    legend.text = element_text(size=7),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  guides(color=guide_legend(ncol=2, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  #ylim(-95, NA)+ 
+  geom_hline(yintercept = 0, colour = "grey50")  #mean line
+#plt_anger
+
+
+```
+
+```{r, eval = FALSE}
+# LIWC anxiety grouped by region and gender
+plt_anxiety <- ggplot(data = df_grouped_anx, aes(x = date, y= 100 * value, 
+                colour = name, linetype = name),alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-20")), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-25")), colour = "black",
+             linetype=2) +#first case
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-15")), colour = "black",
+             linetype=3) + #lockdown
+  geom_vline(xintercept = as.numeric(as.Date("2020-04-28")), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_vline(xintercept = as.numeric(as.Date("2020-05-31")), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_vline(xintercept = as.numeric(as.Date("2020-11-02")), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_line()+
+  #axis labels
+  #ylab("Social media % change vs baseline")  +
+  #xlab("Dates in 2020") +
+  ggtitle("LIWC Anxiety")+ #plot title
+  scale_fill_manual(values = anxiety_cols)+
+  scale_colour_manual(values = anxiety_cols)+
+  scale_linetype_manual(values = anxiety_lty)+
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="bottom",
+                    legend.text = element_text(size=7),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  guides(color=guide_legend(ncol=2, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  #ylim(-120, NA)+ 
+  geom_hline(yintercept = 0, colour = "grey50")  #mean line
+# plt_anxiety
+```
+
+```{r, eval = FALSE}
+# LIWC sadness grouped by region and gender
+plt_sadness <- ggplot(data = df_grouped_sad, aes(x = date, y= 100 * value, 
+                colour = name, linetype = name),alpha = 0.9, size = 1.2) +
+  #lines for important events
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-20")), colour = "black",
+             linetype=1, alpha=0.7) +#Hanau terrorist attack
+  geom_vline(xintercept = as.numeric(as.Date("2020-02-25")), colour = "black",
+             linetype=2) +#first case
+  geom_vline(xintercept = as.numeric(as.Date("2020-03-15")), colour = "black",
+             linetype=3) + #lockdown
+  geom_vline(xintercept = as.numeric(as.Date("2020-04-28")), colour = "black",
+             linetype=4) +#stirring anxiety reports
+  geom_vline(xintercept = as.numeric(as.Date("2020-05-31")), colour = "black",
+             linetype=5)+ #black lives matter
+  geom_vline(xintercept = as.numeric(as.Date("2020-11-02")), colour = "black",
+             linetype=6)+ #terrorist attack
+  geom_line()+
+  #axis labels
+  ylab("Social media % change vs baseline")  +
+  #xlab("Dates in 2020") +
+  #ggtitle("LIWC Sadness")+ #plot title
+  scale_fill_manual(values = sad_cols)+
+  scale_colour_manual(values = sad_cols)+
+  scale_linetype_manual(values = sad_lty)+
+  theme_bw()+ theme(text=element_text(size=axisfontsize), 
+                    axis.text=element_text(size=labelsize), 
+                    axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position = "bottom",
+                    legend.text = element_text(size=7),
+                    legend.key = element_blank(),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  guides(color=guide_legend(ncol=2, byrow=TRUE))+
+  scale_x_date(date_breaks="1 month", date_labels = "%b")+
+  #ylim(-100, NA)+ 
+  geom_hline(yintercept = 0, colour = "grey50")  #mean line
+# plt_sadness
+```
+

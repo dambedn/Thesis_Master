@@ -1,0 +1,227 @@
+---
+output: pdf_document
+---
+# Results
+
+Aggregates of social media sentiment measures were coupled with survey characteristics and the results are presented in the following.
+
+## Confirmatory Analyses
+
+### Time Series of Self-Reported Emotions and Sentiment Measures
+
+Figure \@ref(fig:survey-mean) depicts the time series of the included survey variables' means and their respective $95\,\%$ confidence interval. Considering that levels of anxiety and depression range from zero to three and levels of anger from one to five, most people score low on self-reported depression and anxiety, but tend to exhibit medium levels of anger.
+For a more detailed description of the distribution of each variable per survey wave Figure \@ref(fig:survey-plot) in the Appendix displays the same survey variables' summary statistics as boxplots. Furthermore, time series of the emotion and sentiment measures show the three-day rolling mean (see Figure \@ref(fig:survey-plot-4) for the LIWC anxiety, anger, and depression and Figure \@ref(fig:survey-plot-3) in the Appendix for LIWC and GS negative and positive affect). 
+These time series portray that the sentiment measures are extremely volatile and react sensitively to external events that impacted the whole society. Most prominently, the terror attack on November 2, 2020 in Vienna protrudes and led to a rise in anxiety and anger related words on social media. A similar though less clear pattern is apparent for the means of the variables in the tenth survey wave which comprises the date of the terror attack. Even though an increase in self-reported anger and anxiety is present in Figure \@ref(fig:survey-mean), it does not significantly differ from the prior wave. 
+As this example suggests, the survey results potentially reflect profound changes in the sentiment measures due to external events. Figure \@ref(fig:survey-plot-6) illustrates the Spearman's rank correlation coefficients between the self-reports and social media variables. They will be discussed in detail in the following sections. 
+
+
+```{=latex}
+\begin{figure}
+\caption{Means and Corresponding 95\,\% Confidence Intervals of Surveyed Anger, Anxiety and Depression}
+\label{fig:survey-mean}
+\subfloat[Anger\label{fig:survey-mean-1}]{\includegraphics[width=0.98\linewidth]{plots/plt_ang_2} }\newline\subfloat[Anxiety\label{fig:survey-mean-2}]{\includegraphics[width=0.98\linewidth]{plots/plt_anx_2} }\newline\subfloat[Depression\label{fig:survey-mean-3}]{\includegraphics[width=0.98\linewidth]{plots/plt_dep_2} }
+\end{figure}
+```
+
+```{=latex}
+\begin{figure*}
+\caption{Three-Day Rolling Means of the LIWC Anger, Anxiety, and Sadness Scores in Twitter and Der Standard in 2020 \label{fig:survey-plot-4}}
+
+\subfloat[Twitter \label{fig:twitter-smooth}]{\includegraphics{plots/liwc_twitter_smooth} }\newline\subfloat[Der Standard\label{fig:standard-smooth}]{\includegraphics{plots/liwc_standard_smooth}}
+
+\textit{Note:} This plot pictures the three-day rolling means of the baseline-corrected LIWC emotion measures in both social media platforms, Twitter and Der Standard. The vertical lines indicate some of the time points of the following important external events that stirred emotional responses in the Austrian society: (1) the terrorist attack in Hanau, Germany on February 25, 2020, (2) the first Covid-19 case in Austria on February 25, 2020, the first press conference on Covid-19, announcing bans of large public events and university closures as first measures on March 10, 2020, (3) the first death from Covid-19 in Austria on March 12, 2020, followed by strict social distancing measures announced on March 15, 2020, which started on the day after, (4) press releases about considerations of public agencies to stir anxiety of the population at the beginning of the pandemic on April 28, 2020, (5) Black Lives Matter demonstrations against police brutality on May 31, 2020, and (6) the terrorist attack in Vienna, Austria on November 02, 2020.
+\end{figure*}
+```
+
+```{=latex}
+\begin{figure*}
+\caption{Spearman's Rank Correlations between Survey Variables and Sentiment Measures \label{fig:survey-plot-6}}
+\subfloat[Twitter\label{fig:survey-plot-6-1}]{\includegraphics[width=0.48\linewidth]{plots/cortable_twitter} }\subfloat[Der Standard\label{fig:survey-plot-6-2}]{\includegraphics[width=0.48\linewidth]{plots/cortable_stand} }
+
+\textit{Note:} Anx, Anger and Sad stand for the LIWC anxiety, anger, and sadness scores respectively. Neg GS is an abbreviation for the GS negative affect score.
+\end{figure*}
+```
+
+
+```{r}
+# load results 
+load("../data/results_main.Rdata")
+load("../data/gs_stand_corrected_anx.Rdata")
+
+# Sample size 
+N <- nrow(gs_stand_corrected_anx)
+Twitter <- results_main$`Results Twitter - Fisher z-transformation`
+Stand <- results_main$`Results DerStandard - Fisher z-transformation`
+```
+### Anger
+To test hypotheses 1 (a) and (b) and 4 (a) and (b) we computed Spearman's rank correlations between the anger survey and the LIWC anger score for Twitter and Der Standard, respectively, as well as between the anger survey and the GS negative affect score for both platforms. Levels of significance for all the confirmatory analyses were set by implementing the sequential Holm procedure [@holm1979]. There was a negative correlation between the corresponding anger scores for both platforms (Twitter: r(`r N-2`) = `r printnum(Twitter["Anger Surv Anger","Rho"], gt1 = FALSE)` [`r printnum(Twitter["Anger Surv Anger","Lower adj"], gt1 = FALSE)`, `r printnum(Twitter["Anger Surv Anger","Upper adj"], gt1 = FALSE)`], p = `r printp(Twitter["Anger Surv Anger","p"])`, Der Standard: r(`r N-2`) = `r printnum(Stand["Anger Surv Anger","Rho"], gt1 = FALSE)` [`r printnum(Stand["Anger Surv Anger","Lower adj"], gt1 = FALSE)`, `r printnum(Stand["Anger Surv Anger","Upper adj"], gt1 = FALSE)`], p = `r printp(Stand["Anger Surv Anger","p"])`). Contrarily, the correlation between the anger survey and the GS negative score was positive, r(`r N-2`) = `r printnum(Twitter["Anger Surv Neg GS","Rho"], gt1 = FALSE)` [`r printnum(Twitter["Anger Surv Neg GS","Lower adj"], gt1 = FALSE)`, `r printnum(Twitter["Anger Surv Neg GS","Upper adj"], gt1 = FALSE)`], p = `r printp(Twitter["Anger Surv Neg GS","p"])`, and r(`r N-2`) = `r printnum(Stand["Anger Surv Neg GS","Rho"], gt1 = FALSE)` [`r printnum(Stand["Anger Surv Neg GS","Lower adj"], gt1 = FALSE)`, `r printnum(Stand["Anger Surv Neg GS","Upper adj"], gt1 = FALSE)`], p = `r printp(Stand["Anger Surv Neg GS","p"])` respectively. Consequently, we only found the hypothesized positive although insignificant correlation for the machine learning-based negative GS score, and not the dictionary-based anger score.
+
+
+### Anxiety
+The Spearman's rank correlations between the anxiety survey and the anxiety LIWC score for Twitter and Der Standard were r(`r N-2`) = `r printnum(Twitter["Anx Surv Anx","Rho"], gt1 = FALSE)` [`r printnum(Twitter["Anx Surv Anx","Lower adj"], gt1 = FALSE)`, `r printnum(Twitter["Anx Surv Anx","Upper adj"], gt1 = FALSE)`], p = `r printp(Twitter["Anx Surv Anx","p"])`, and r(`r N-2`) = `r printnum(Stand["Anx Surv Anx","Rho"], gt1 = FALSE)` [`r printnum(Stand["Anx Surv Anx","Lower adj"], gt1 = FALSE)`, `r printnum(Stand["Anx Surv Anx","Upper adj"], gt1 = FALSE)`], p = `r printp(Stand["Anx Surv Anx","p"])` respectively. Hence, the corresponding null hypotheses are not rejected although the correlations go in the expected direction.  
+Similarly, the association between the survey anxiety and the GS negative affect score was positive but not significant for either Twitter or Der Standard (r(`r N-2`) = `r printnum(Twitter["Anx Surv Neg GS","Rho"], gt1 = FALSE)` [`r printnum(Twitter["Anx Surv Neg GS","Lower adj"], gt1 = FALSE)`, `r printnum(Twitter["Anx Surv Neg GS","Upper adj"], gt1 = FALSE)`], p = `r printp(Twitter["Anx Surv Neg GS","p"])`, and r(`r N-2`) = `r printnum(Stand["Anx Surv Neg GS","Rho"], gt1 = FALSE)` [`r printnum(Stand["Anx Surv Neg GS","Lower adj"], gt1 = FALSE)`, `r printnum(Stand["Anx Surv Neg GS","Upper adj"], gt1 = FALSE)`], p = `r printp(Stand["Anx Surv Neg GS","p"])` respectively). 
+
+
+### Depression
+Lastly, hypotheses 3 (a) and (b) and 6 (a) and (b) tested the correlation between self-reported depression and LIWC sadness, as well as GS negative affect. The correlation with LIWC sadness was positive for Twitter (r(`r N-2`) = `r printnum(Twitter["Depr Surv Sad","Rho"], gt1 = FALSE)` [`r printnum(Twitter["Depr Surv Sad","Lower adj"], gt1 = FALSE)`, `r printnum(Twitter["Depr Surv Sad","Upper adj"], gt1 = FALSE)`], p = `r printp(Twitter["Depr Surv Sad","p"])`) and Der Standard (r(`r N-2`) = `r printnum(Stand["Depr Surv Sad","Rho"], gt1 = FALSE)` [`r printnum(Stand["Depr Surv Sad","Lower adj"], gt1 = FALSE)`, `r printnum(Stand["Depr Surv Sad","Upper adj"], gt1 = FALSE)`], p = `r printp(Stand["Depr Surv Sad","p"])`). Similarly, the association between the depression survey and the GS negative affect score was positive for both social media platforms, r(`r N-2`) = `r printnum(Twitter["Depr Surv Neg GS","Rho"], gt1 = FALSE)` [`r printnum(Twitter["Depr Surv Neg GS","Lower adj"], gt1 = FALSE)`, `r printnum(Twitter["Depr Surv Neg GS","Upper adj"], gt1 = FALSE)`], p = `r printp(Twitter["Depr Surv Neg GS","p"])`, and r(`r N-2`) = `r printnum(Stand["Depr Surv Neg GS","Rho"], gt1 = FALSE)` [`r printnum(Stand["Depr Surv Neg GS","Lower adj"], gt1 = FALSE)`, `r printnum(Stand["Depr Surv Neg GS","Upper adj"], gt1 = FALSE)`], p = `r printp(Stand["Depr Surv Neg GS","p"])`. Again, the corresponding null hypotheses cannot be rejected based on this set of data and analyses, although relationships go in the right direction.
+
+
+### Comparison of Different Confidence Intervals
+
+The confidence intervals computed by the analytical approach can be compared to their counterparts computed by the nonparametric bootstrap approach in Table \@ref(tab:table-appendix-1) for Twitter and \@ref(tab:table-appendix-2) for Der Standard in the Appendix. The results converge in finding non-significant correlations. The corresponding histograms and Q-Q plots of the bootstrap samples are displayed in Figure \@ref(fig:survey-plot-7) for Twitter and \@ref(fig:survey-plot-8) for Der Standard in the Appendix. It is apparent that with increasing absolute value of $\rho$ the densities tend to be skewed and consequently less normal. This potentially results in less appropriate estimates with the analytical procedure.
+
+
+### Effect of Gender and Federal State
+
+Furthermore, we investigated the above associations in more detail for only Twitter data by analyzing the influence of gender and federal state on the link between survey and sentiment scores. 
+Time series plots of the sentiment measures grouped by gender for two example federal states, Vienna and Upper Austria, illustrate state- and gender-differences in the sentiment scores (Figures \@ref(fig:Ang-gender-region), \@ref(fig:Anx-gender-region) and \@ref(fig:Sad-gender-region) for LIWC anger, anxiety, and sadness respectively, and Figure \@ref(fig:GS-gender-region) for GS negative affect). These plots depict that the variability in Vienna is less pronounced than in Upper Austria, which is a consequence of the much larger sample of tweets from Vienna, leading to more reliable estimates. To investigate if the variability in the sentiment measures significantly improves model performance when controlling for confounding influences of gender and federal state, we employed a hierarchical regression. 
+
+```{=latex}
+\begin{figure*}
+\caption{Three-Day Rolling Means of LIWC Anger in Tweets from Users in Vienna and Upper Austria in 2020 Grouped by Gender}(\#fig:Ang-gender-region)
+\includegraphics[width=\textwidth]{plots/plt_anger}
+
+\textit{Note:} This plot pictures the three-day rolling means of the baseline-corrected LIWC anger measure in Twitter split by gender and two example federal states, Vienna and Upper Austria. The vertical lines portray important events stirring emotional responses in Austria: (1) the terrorist attack in Hanau, Germany on February 25, 2020, (2) the first Covid-19 case in Austria on February 25, 2020, (3) the first death from Covid-19 in Austria on March 12, 2020, (4) press releases about considerations of public agencies to stir anxiety of the population at the beginning of the pandemic on April 28, 2020, (5) Black Lives Matter demonstrations against police brutality on May 31, 2020, and (6) the terrorist attack in Vienna, Austria on November 02, 2020.
+\end{figure*}
+```
+
+Firstly, we computed a regression on survey emotions with only gender and federal state as independent variables. Second, we tested if adding GS negative or the corresponding LIWC score significantly increased model performance. 
+
+```{r}
+load("../data/anova_anx_GS.RData")
+load("../data/anova_ang_GS.RData")
+load("../data/anova_depr_GS.RData")
+load("../data/anova_anx_LIWC.RData")
+load("../data/anova_ang_LIWC.RData")
+load("../data/anova_depr_LIWC.RData")
+```
+GS negative affect did not contribute significantly to explaining variation in self-reported anger, `r anova_ang_GS$full_result`. It did also not improve model performance for the anxiety survey measure, `r anova_anx_GS$full_result`. For self-reported depression, `r anova_depr_GS$full_result` the F-score turned out to be significant. Interestingly, all the coefficients turned out to be negative.
+Equivalently, we investigated how the model performance changed when adding the corresponding LIWC emotion to the baseline model. Neither adding LIWC anger nor anxiety improved model performance significantly (`r anova_ang_LIWC$full_result` and `r anova_anx_LIWC$full_result` respectively). Again, both sentiment score regression coefficients turned out be negative. Contrarily, only the coefficient of LIWC depression was positive as hypothesized and significantly improved model performance when considering the F-score, `r anova_depr_LIWC$full_result`.
+The results of the hierarchical linear regressions are displayed in greater detail in the Appendix in Tables \@ref(tab:table-ang-GS) for the survey anger and GS negative affect association, \@ref(tab:table-anx-GS) for the survey anxiety and GS negative affect association, \@ref(tab:table-depr-GS) for the survey depression and GS negative affect association, \@ref(tab:table-ang-liwc) for the survey anger and LIWC anger association, \@ref(tab:table-anx-liwc) for the survey anxiety and LIWC anxiety association and \@ref(tab:table-depr-liwc) for the survey depression and LIWC sadness association.
+Importantly, in all the above analyses most of the variation in the dependent variables are explained by gender and federal state and not by the sentiment measure. $R^2$ ranges from 0.31 in the baseline models for both self-reported anger models to 0.42 in both self-reported depression baseline models. 
+The assumptions for these multiple linear regressions are met. See the partial correlation and diagnostic plots in Figure \@ref(fig:pcp-plots) and \@ref(fig:diagnostic-plots) in the Appendix. 
+
+
+## Exploratory Analyses
+
+In order to understand the interrelations between emotional or sentiment and self-reported measures in more detail we conducted further exploratory analyses. Figure \@ref(fig:survey-plot-6) provides first insights that it is worth investigating the associations between survey and sentiment measures apart from the ones that were discussed above. Most prominently, whereas the LIWC anger is unexpectedly negatively correlated with self-reported anger, GS negative and LIWC anxiety and sadness exhibit strong positive correlations with the survey measure. This holds true for both social media platforms. It further becomes clear that all three self-reported emotions share a positive correlation with the sentiment measures apart from LIWC anger which consistently is negatively correlated to them. On the one hand, the following section discusses the interrelations between different survey variables and the LIWC and GS measures apart from the main results. On the other hand, we will discuss the influence of changes in the time windows to include the social media data on the relations discussed in the above sections. 
+
+### Influence of Time Window for Sentiment Measures
+Figure \@ref(fig:scatter-lag) illustrates how the Spearman's rank correlation coefficients vary as a function of time window before the survey for which we included text data for sentiment measures.
+For Twitter, the correlation is in general highest with a time window of only one day prior to each survey wave. The correlation of LIWC sadness with self-reported depression is an exception, being highest from day three to eleven. For Der Standard, all three correlations with GS negative affect are better for windows up to three days. LIWC anger correlates most highly with survey anger for a short one- or two-day window. LIWC sadness correlates most strongly for longer time intervals, similar to Twitter sentiment, increasing slightly from around day seven onward. 
+Equivalently, Figure \@ref(fig:scatter-lag-50) in the Appendix displays the results with the only difference that for each survey wave we only included data of the first $50\,\%$ of the respondents. The reason for including only the first $50\,\%$ was to keep the time window more restricted, and thus more comparable to the quickly changing dynamics of the online platforms. The figure looks like Figure \@ref(fig:scatter-lag).
+
+
+```{=latex}
+\begin{figure*}
+\caption{Spearman's $\rho$ as a Function of the Time Window of Twitter and Der Standard Data Used to Calculate Sentiment Measures}(\#fig:scatter-lag)
+\subfloat[Twitter(\#fig:scatter-lag-1)]{\includegraphics[width=\textwidth]{plots/plt_twitter_lag} }\newline\subfloat[Der Standard(\#fig:scatter-lag-2)]{\includegraphics[width=\textwidth]{plots/plt_stand_lag} }
+
+
+\textit{Note:} This plot depicts the influence of the time window we used to include social media data for the computation of the sentiment measures on the correlation between self-reported and social media sentiment and emotion measures. The motivation behind this analysis is that the survey questions refer back either 14 days in the case of depression or seven days in case of anxiety and anger. To take this into account the start of the time window of included social media data is likewise adopted to either 14 or seven days prior to each survey wave. Past research indicates that the respondent's memory recall might be biased towards more short-termed events. We thus computed correlations based on restricted time windows. Increased correlations with the survey measures for a shorter time window would underline this theory. Note that for anxiety and anger only the correlations for time windows ranging from one to seven days are relevant. For depression the complete range, i.e., from 14 days to one day is relevant.
+\end{figure*}
+```
+
+Next, we investigated how the length of the time window influences the regression coefficients of the sentiment measures when additionally controlling for gender and federal state. Figure \@ref(fig:coef-lags) depicts the coefficients with corresponding $95\,\%$ confidence intervals. Interestingly, only the results concerning the coefficients with the LIWC scores converge with the Spearman's rank correlation results. The GS scores however do not exhibit such a consistent pattern. For the survey anger and GS negative relation a restricted time window did not increase the strength of the correlation. The coefficient of the anxiety and GS negative regression is indeed highest with a time window of only one or two days. For depression and GS negative the coefficient also becomes less negative with a restricted time window. Again, it is noteworthy that none of the coefficients related to GS negative exhibits a positive relationship to the survey measure. For the coefficients related to LIWC anger and anxiety however, a restricted time window led to a more positive correlation coefficient. This is especially pronounced for the LIWC anger coefficient. Contrarily, the LIWC sadness coefficient exhibits a reversed pattern. As the time window becomes less restricted the coefficients tend to rise. This indicates that the reference point for the survey depression questions is mirrored better by the sentiment measures when smoothing the data by a greater time interval. Nonetheless, none of the above coefficients vary significantly from each other as a function of the included time window. Yet, this is not surprising giving the small number of survey waves in our dataset.
+
+
+<!-- ```{r survey-plot-7, fig.cap = "(ref:my-caption8)", message = FALSE , fig.env="figure*", fig.ncol = 2, out.width = "48%", fig.show='hold', fig.subcap=c('Anger GS Negative', 'Anxiety GS Negative', 'Depression GS Negative', 'Anger LIWC Anger', 'Anxiety LIWC Anxiety', 'Depression LIWC Sadness')} -->
+<!-- knitr::include_graphics("plots/coef_lags_anger_GS.pdf") -->
+<!-- knitr::include_graphics("plots/coef_lags_anxiety_GS.pdf") -->
+<!-- knitr::include_graphics("plots/coef_lags_depr_GS.pdf") -->
+<!-- knitr::include_graphics("plots/coef_lags_anger_LIWC.pdf") -->
+<!-- knitr::include_graphics("plots/coef_lags_anxiety_LIWC.pdf") -->
+<!-- knitr::include_graphics("plots/coef_lags_depr_LIWC.pdf") -->
+<!-- ``` -->
+
+```{=latex}
+\begin{figure*}
+\caption{Linear Regression Coefficients after Controlling for Gender and federal state as a Function of Time-Window for Twitter Data}\label{fig:coef-lags}
+\subfloat[Anger GS Negative\label{fig:survey-plot-7-1}]{\includegraphics[width=0.48\linewidth]{plots/coef_lags_anger_GS} }\subfloat[Anxiety GS Negative\label{fig:survey-plot-7-2}]{\includegraphics[width=0.48\linewidth]{plots/coef_lags_anxiety_GS} }\newline\subfloat[Depression GS Negative\label{fig:survey-plot-7-3}]{\includegraphics[width=0.48\linewidth]{plots/coef_lags_depr_GS} }\subfloat[Anger LIWC Anger\label{fig:survey-plot-7-4}]{\includegraphics[width=0.48\linewidth]{plots/coef_lags_anger_LIWC} }\newline\subfloat[Anxiety LIWC Anxiety\label{fig:survey-plot-7-5}]{\includegraphics[width=0.48\linewidth]{plots/coef_lags_anxiety_LIWC} }\subfloat[Depression LIWC Sadness\label{fig:survey-plot-7-6}]{\includegraphics[width=0.48\linewidth]{plots/coef_lags_depr_LIWC} }
+
+\textit{Note:} This plot depicts the influence of the time window we used to include Twitter data for the computation of the sentiment measures on the regression coefficients related to the emotion and sentiment measures. The regression model controlled for the influence of gender and Austrian federal states on the outcome survey measure. The shaded areas around the line depict corresponding 95\,\% confidence intervals. For greater details on the time windows see the note in Figure~\ref{fig:scatter-lag}. Since the anxiety and anger survey questions refer back only seven days the relevant time window range for the corresponding coefficients is from one to seven days.
+\end{figure*}
+```
+
+
+
+
+### Best Subset Selection
+For further exploration we analyzed how different sentiment measures associate with the three survey variables. Figure \@ref(fig:survey-plot-6) shows the Spearman's rank correlation coefficients between the survey and sentiment measures. For Twitter, we further employed best subset selection to investigate which combination of independent variables best predicts the different survey variables. 
+The models that minimize the AIC or BIC for the different survey variables are portrayed in Table \@ref(tab:subset). For a more detailed view of the results Tables \@ref(tab:subset-detail), \@ref(tab:subset-detail-2), \@ref(tab:subset-detail-3), \@ref(tab:subset-detail-4), \@ref(tab:subset-detail-5) and \@ref(tab:subset-detail-6) in the Appendix list the five winning models for both AIC and BIC for each self-reported measure. 
+
+```{r subset, results='asis'}
+load(file = "../data/df_subset_anxiety_AIC.RData")
+load(file = "../data/df_subset_anxiety_BIC.RData")
+load(file = "../data/df_subset_anger_AIC.RData")
+load(file = "../data/df_subset_anger_BIC.RData")
+load(file = "../data/df_subset_depr_AIC.RData")
+load(file = "../data/df_subset_depr_BIC.RData")
+
+names(df_subset_anxiety_AIC)[ncol(df_subset_anxiety_AIC)] <- "IC"
+names(df_subset_anxiety_BIC)[ncol(df_subset_anxiety_BIC)] <- "IC"
+names(df_subset_anger_AIC)[ncol(df_subset_anger_AIC)] <- "IC"
+names(df_subset_anger_BIC)[ncol(df_subset_anger_BIC)] <- "IC"
+names(df_subset_depr_AIC)[ncol(df_subset_depr_AIC)] <- "IC"
+names(df_subset_depr_BIC)[ncol(df_subset_depr_BIC)] <- "IC"
+
+df_best_subset <- rbind.data.frame(df_subset_anger_AIC[1, ], df_subset_anger_BIC[1, ],
+                                   df_subset_anxiety_AIC[1, ], df_subset_anxiety_BIC[1, ],
+                                   df_subset_depr_AIC[1, ], df_subset_depr_BIC[1, ])
+
+
+# only best model
+rownames(df_best_subset) <- c("Ang AIC", "Ang BIC", "Anx AIC", "Anx BIC", "Depr AIC", "Depr BIC")
+colnames(df_best_subset) <- c("Salz", "Styr", "Tyr", "Vie", "Male", "LI Pos", "LI Neg", "LI Anx", "LI Ang", "LI Sad", "GS Pos", "GS Neg", "IC")
+
+out <- apa_table(
+  df_best_subset
+  , caption = "Resulting Winning Models for the Best Subset Selection that Minimize AIC or BIC for the Different Survey Variable"
+  , note = "Salz, Styr, Tyr and Vie are abbreviations for Salzburg, Styria, Tyrol and Vienna. LI, Pos, Neg, Anx, Ang and Depr are the respective abbreviations for LIWC, positive, negative, anxiety, anger and depression. Variables that were not included in a model were labelled with a hyphen. The last column always displays the respective information criterion - either AIC or BIC."
+  , span_text_columns = TRUE
+  , placement = "h!"
+  , escape = TRUE
+  , font_size = "small"
+)
+
+# instead of NAs print -
+cat(gsub("NA", "-", out))
+```
+
+First, the winning models for AIC and BIC do not converge in selecting the exact same model. Unsurprisingly, BIC selects models with a smaller number of independent variables. However, the winning models per self-reported measure consistently include similar variables. Second, whenever one of the winning models contains LIWC positive emotion, its regression coefficient is positive. This indicates that the LIWC positive emotion score is an important factor in reducing AIC and BIC and hence increasing model performance in explaining self-reported depression and anger.
+Third, winning models including LIWC negative emotion also include LIWC anxiety and anger or only LIWC anxiety. Whereas LIWC negative emotion yields a positive regression coefficient, the corresponding anger and anxiety coefficients are negative. This phenomenon is especially pronounced in the winning models for the self-reported depression variable. 
+Importantly, these coefficients are difficult to interpret since LIWC negative is a linear combination of LIWC anger, anxiety and sadness and hence is associated with these emotions by definition. Potentially, the positive LIWC negative affect score reflects a high influence of LIWC sadness that is reduced by LIWC anxiety and anger. Practically, people who score high in self-reported depression tend to use fewer words indicating anxiety or anger but more sadness-related words. In comparison, the self-reported anger models only include LIWC anger and sadness. In this case, the coefficient for LIWC anger is again negative while the one for LIWC sadness is positive which supports the interpretation.
+Fourth, similar to the hierarchical regressions, GS negative affect is negatively associated with the dependent survey measures. Again, this phenomenon is strongest in the case of the depression survey variable. This indicates that negative affect GS captures negative emotionality apart from the one primarily present in depression. 
+Fifth, the corresponding LIWC emotion (e.g., LIWC anger in the anger survey regressions) is always integrated in a winning model at least once but does not always yield an expected positive regression coefficient. As was demonstrated in the analyses above, especially the LIWC anger construct is negatively associated with the corresponding survey measure. The same effect is present for anxiety but less pronounced. Only for the depression survey variable two of the winning BIC models indicate a positive linear association with the LIWC sadness variable when controlling for the other included independent measures (compare with Table \@ref(tab:subset-detail-6) in the Appendix).
+Furthermore, the effects of LIWC sadness and GS positive in the winning anger survey models are worth investigating. While LIWC sadness has a relatively high positive regression coefficient, the regression coefficient of GS positive is consistently negative throughout all models that included this variable.
+Lastly Table \@ref(tab:subset) indicates that differences between certain federal states do not add to the model's explanatory power and are therefore not included in the winning models. Hence, some federal states seem not to differ strongly in their self-reported or social media measure from the baseline federal state, i.e., Upper Austria. Strong differences here would also have been hard to explain. 
+
+It is important to mention that issues of multicollinearity might limit the efficiency of parameter estimation when multiple survey measures are added to a model. 
+
+
+
+### Mixed Factor Analysis and Multiple Linear Regression
+
+```{r}
+load(file = "../data/X_poly_cor.RData")
+```
+
+```{=latex}
+\begin{figure*}[h!b]
+\caption{Spearman's $\rho$ between Twitter and Der Standard Emotion and Sentiment Measures and the Resulting Factor Scores}\label{fig:spear-fa}
+\subfloat[Twitter\label{fig:spear-fa-1}]{\includegraphics[width=0.48\linewidth]{plots/plot_spear_fa_twitter} }\subfloat[Der Standard\label{fig:spear-fa-2}]{\includegraphics[width=0.48\linewidth]{plots/plot_spear_fa_stand} }
+\end{figure*}
+```
+
+To investigate how further survey variables beyond anger, anxiety and depression are associated with different sentiment measures we employed a factor analysis on the tetrachoric and polychoric correlations. The included variables ranged from diverse conflict-related variables (i.e., conflict with family or partner, conflict at work, experience of psychological or physical domestic violence and change of conflicts versus pre-Covid times) to suicidal ideation and various variables assessing positive life outcomes compared to pre-Covid. Figure \@ref(fig:table-mix-cor) portrays the corresponding mixed correlations between the included variables. 
+Figure \@ref(fig:scree-plot) in the Appendix depicts the scree plots, additionally indicating the results of the parallel analysis to decide on the number of factors to compute the analysis with. Even though the parallel analysis suggested six factors we adhered to the scree plot and Kaiser criterion, which converged towards a factor analysis with two factors. This further allowed for an easier interpretation. Furthermore, the mixed correlation table depicts two clusters of variables that are positively correlated with each other. The first cluster consists of the positive life outcomes which consistently positively correlate with each other. Contrarily, the second cluster consists of the conflict-, violence- and suicide-related variables.
+Resulting loading structures and variable communalities of the factor analysis after varimax rotation are portrayed in Table \@ref(tab:loading) in the Appendix. 
+Communalities are the sum of the squared factor loadings for each variable. In total, this model accounted for `r round(X_poly$Vaccounted["Cumulative Var", 2], 2) * 100`$\,\%$ of the variance. The first factor explains `r round(X_poly$Vaccounted["Proportion Explained", 1], 2) * 100`$\,\%$ of this variance, while the second factor accounts for the remaining `r round(X_poly$Vaccounted["Proportion Explained", 2], 2) * 100`$\,\%$.
+Based on the factor loadings of the variables, the two factors were interpreted as a conflict- and suicide-related score and a positive life outcome score.
+The former factor scores consistently high on the conflict-, violence- and suicide-related variables. Contrarily, the second factor scores high on the positive life outcomes. Hence it mirrors the cluster structure described above which is present in the mixed correlation table (see Figure \@ref(fig:table-mix-cor)). We computed Spearman's rank correlations to investigate the interrelations between resulting factor scores and emotion and sentiment measures. Figure \@ref(fig:spear-fa) portrays these correlations.
+Concerning the correlations of factor scores with the sentiment measures on Twitter, the positive life outcome score was negatively correlated with the LIWC and GS negative. As expected, GS positive was positively correlated with the life outcome score. Surprisingly, this score exhibited a strong negative correlation with LIWC positive. This indicates that a greater number of words associated with positive emotions or meaning were present in social media whilst positive life outcomes tended to decrease compared to pre-Covid times.
+Interestingly, for Twitter, the conflict- and suicide-related score exhibits a similar correlation pattern to the other score at first glance. Importantly, once again the LIWC positive is negatively correlated with the conflict- and suicide-related score. Whereas this factor score exhibits a plausible positive correlation with LIWC anger, it was unintuitively negatively correlated to LIWC anxiety and sadness, and most prominently, GS negative.
+In the Der Standard data, the positive life outcome score is uncorrelated with most of the emotion and sentiment scores, except for a positive correlation with GS negative. The correlation of the score related to positive life outcomes with LIWC positive is negative for Twitter while the variables are uncorrelated for Der Standard.
+But unlike with Twitter, it exhibits an implausible higher positive correlation with the LIWC negative affect score as well as with the sentiment anger score. Again, the unexpected negative correlation with the social media sadness score is still present. Remarkably, the conflict- and suicide-related factor score is negatively correlated with the GS negative affect score, even though to a lesser degree than for Twitter. There is a great difference between Twitter and Der Standard for this factor's correlation with the GS positive affect score. Here, a strong negative correlation is apparent. Likewise, it is more strongly positively correlated with the LIWC anger score. 
+
+

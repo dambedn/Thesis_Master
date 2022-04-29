@@ -1,0 +1,1657 @@
+---
+title: "Analyses"
+output: pdf_document
+---
+
+\pagenumbering{gobble}
+\pagebreak
+\tableofcontents
+\pagebreak
+
+\pagebreak
+\pagenumbering{arabic}
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warnings = FALSE, fig.width=4, fig.height=4, fig.align = "center")
+```
+
+---
+
+# Description of scripts: 
+
+* Social_Media_Processing.R imports the different data files, joins them together into single dataframes,
+binarizes the liwc-files, excludes dates that do not belong into the baseline date range
+and finally excludes twitter related posts that were either categorized as originating from
+organizations by Brandwatch or were posted by users with below 100 or beyond 5000 followers.
+* Survey_Processing.R pre-processes the survey data and groups important variables together.
+* Social_Media_Baseline_1.R integrates the datafiles created by Social_Media_Processing.R and the date-related information of the survey, and baseline-corrects the 2020 twitter gs and liwc values with mean weekday values of 2019. 
+* The data in the "data/" file represents the output of the
+Social_Media_Baseline_1.R file and comprises the baseline-corrected variables per survey wave for 
+    1) negative and positive gs twitter scores, 
+    2) positive emotion, negative emotion, anxiety, anger, sad and social liwc twitter scores.
+* Social_Media_Baseline_2.R baseline-corrects the 2020 twitter GS and LIWC values grouped by federal state.
+
+
+# Analyses
+
+```{r Libraries, echo = FALSE}
+library(tidyverse)
+library(data.table)
+library(psych) # mixed factor analyses
+library(gridExtra)
+library(ggcorrplot)
+library(boot) 
+library(rlist) # subsetting lists
+library(leaps) # needed for bestglm
+library(bestglm) # package for best subset selection
+library(dummies) # create dummy variables
+library(GGally) 
+library(papaja)
+library(ggDoE) # for diagnostic plots
+library(ppcor) # computed partial correlations
+```
+
+```{r Import Data, echo = FALSE, message = FALSE}
+# Import baseline-corrected DerStandard and Twitter data for different timeframes
+
+# Import a list that contains each baseline-correction for differing time spans: from -14 days:75% responded to -1 day:75% responded:
+# For DerStandard
+load("../data/liwc_stand_corrected_time.RData")
+load("../data/gs_stand_corrected_time.RData")
+
+# For Twitter
+load("../data/liwc_twitter_corrected_time.RData")
+load("../data/gs_twitter_corrected_time.RData")
+
+# Import baseline-corrected twitter data for each gender and federal state
+load("../data/liwc_federal_gender.RData")
+load("../data/gs_federal_gender.RData")
+
+
+# These dataframes are indeed containing all of the following whose time span ends when 75% of the participants responded. 
+
+#############################################################################
+# _anx data belongs to the analyses concerning anxiety and anger (-7 days prior to survey onset)
+# _depr data belongs to the analyses concerning depression (-14 days prior to survey onset)
+
+# Import baseline-corrected DerStandard data
+load("../data/gs_stand_corrected_anx.RData")
+load("../data/gs_stand_corrected_depr.RData")
+load("../data/liwc_stand_corrected_anx.RData")
+load("../data/liwc_stand_corrected_depr.RData")
+
+# Import baseline-corrected Twitter data
+load("../data/gs_twitter_corrected_anx.RData")
+load("../data/gs_twitter_corrected_depr.RData")
+load("../data/liwc_twitter_corrected_anx.RData")
+load("../data/liwc_twitter_corrected_depr.RData")
+
+
+#############################################################################
+# 1:14 days prior to survey onset until 50% of the participants responded (for varying starting points)
+# Import baseline-corrected DerStandard data
+load("../data/liwc_stand_corrected_time_50.RData")
+load("../data/gs_stand_corrected_time_50.RData")
+
+# Import baseline-corrected Twitter data
+load("../data/liwc_twitter_corrected_time_50.RData")
+load("../data/gs_twitter_corrected_time_50.RData")
+
+#############################################################################
+```
+
+# Analyses for whole Austria
+
+## Computation of survey-values
+```{r}
+# survey data: only including the first 75% of participants each survey wave 
+load("../data/d2_vars.Rdata")
+
+# survey data: only including the first 50% of participants each survey wave 
+load("../data/d2_vars_50.Rdata")
+```
+
+## Correlation Table: Survey (anxiety, anger, depression) vs. sentiment scores)
+First of all, a correlation table is computed that includes Spearman rank correlations between the anxiety, anger and depression survey constructs and the respective sentiment scores, i.e. the anxiety, anger and sadness LIWC score and the negative emotionality GS score. Specifically, this analysis follows the idea of the pre-registration: The chosen time-frames for anxiety and anger range from seven days prior to each survey wave onset until 75% of the participants responded to this survey. All Twitter and Der Standard postings that fall into this time-frame are included in the correlation analyses. For the survey depression construct all postings from 14 days prior to each survey wave onset until 75% of the participants responded to this survey were included. These time-frames (7 days and 14 days prior to survey onset) correspond to how far the respective scale's items refer back in time.  
+
+
+```{r}
+# initialize a list that will store all the relevant results
+results_main <- vector(mode = "list", length = 4)
+names(results_main) <- c("Results Twitter - Fisher z-transformation", 
+                         "Results Twitter - Nonparametric bootstrap", 
+                         "Results DerStandard - Fisher z-transformation", 
+                         "Results DerStandard - Nonparametric bootstrap")
+
+# Twitter data:
+# bind important variables together into one dataframe
+data_corr_twitter <- cbind.data.frame(d2_vars[, 2:4], 
+                                      gs_twitter_corrected_anx[, 5], 
+                                      liwc_twitter_corrected_anx[, 10:11],
+                                      liwc_twitter_corrected_depr[, 12])
+names(data_corr_twitter) <- c("Anx Surv", "Depr Surv", "Anger Surv", "Neg GS", 
+                              "Anx", "Anger", "Sad")
+
+# Der Standard data:
+data_corr_stand <- cbind.data.frame(d2_vars[, 2:4], 
+                                      gs_stand_corrected_anx[, 5], 
+                                      liwc_stand_corrected_anx[, 10:11],
+                                      liwc_stand_corrected_depr[, 12])
+names(data_corr_stand) <- c("Anx Surv", "Depr Surv", "Anger Surv", "Neg GS", 
+                              "Anx", "Anger", "Sad")
+
+
+# compute the confidence interval for rho using an adaption of the Fisher z-transformation as proposed by Bonnett and Wright (2000) and further developed by Ruscio (2008)
+# alpha is set to 0.10 in the consequent analyses, since our hypothesis test
+# is one-sided on a 0.050 level. I will report both confidence bounds (lower and upper) but the lower bound is the most interesting since the hypotheses are only rejected if the lower bound of the confidence interval is greater than 0. 
+
+spearman_CI <- function(x, y, alpha = 0.10, index = TRUE, subset = c(1:4, 9, 11), seed = 1234){
+  # This function outputs Spearman's rank correlations as well as p-values and confidence intervals computed by an adaptation of a      Fisher z-transformation as well as confidence intervals computed by a nonparametric bootstrap. Moreover it outputs the full          correlation matrix for further plots.
+  
+  # Spearman's rank correlation coefficient
+  spear_r <- cor(x, y, use = "complete.obs", method = "spearman")
+  # save spear_r that entails all possible correlations for potential correlation table plots
+  spear_r_complete <- spear_r
+  
+  # names for correlations
+  names <- c(paste(row.names(spear_r_complete), colnames(spear_r_complete)[1]),                                      paste(row.names(spear_r_complete)[c(1, 3, 2)], colnames(spear_r_complete)[2:4]))
+  
+  # Number of observations
+  n <- sum(complete.cases(x, y))
+  
+  # compute one-tailed p-value (see Ruscio (2008) for standard error estimation)
+  p <- 1- pt(atanh(spear_r)/sqrt((1 + spear_r^2/2)/(n - 3)), df = n - 2)
+  
+  # p_2 would be the one-tailed p-value for the "standard" Fisher z-transformation
+  #p_2 <- 1- pnorm(q = atanh(spear_r), mean = 0, sd = 1/sqrt(n - 3))
+                
+  # Upper and lower confidence interval limit
+  # Holm-Bonferroni correction if index = TRUE
+  if(index == FALSE){
+    CI_upper <- tanh(atanh(spear_r) - sqrt((1 + spear_r^2/2)/(n - 3))
+            * qt(p = alpha/2, df = n - 2))
+  
+    CI_lower <- tanh(atanh(spear_r) + sqrt((1 + spear_r^2/2)/(n - 3))
+            * qt(p = alpha/2, df = n - 2))
+  }
+  
+  if(index == TRUE){
+    # subset correlations that are necessary, and compute Holm-Bonferroni adjusted confidence intervals
+    p <- p[subset]
+    order_data <- rank(p, ties.method = "first") # in order to re-subset the original order
+    order_p <- order(p)
+    names <- names[order_p]
+
+    p <- p[order_p]
+    spear_r <- spear_r[subset][order_p]
+    names(p) <- names
+    names(spear_r) <- names
+    
+    # number of hypothesis to be tested
+    m <- length(spear_r)
+    
+    # Bootstrapping:
+    boot_spear <- function(data, indices, a, b) {
+      # subset rows of given data matrix
+      d <- data[indices, ]
+      # compute Spearman rank correlation coefficient
+      r <- round(as.numeric(cor(d[a], d[b], method = "spearman")), 3)
+      # output r
+      r
+    }
+
+    # set seed for reproducibility
+    set.seed(seed)
+    temp_1 <- c(colnames(x), colnames(x)[c(1, 3, 2)])
+    temp_2 <- c(rep(colnames(y)[1], 3), colnames(y)[2:4])
+
+    # initialize list for resulting bootstrap outputs
+    boot_results <- vector(mode = "list", length = m)
+    plot_boot <- vector(mode = "list", length = m)
+    
+    for(i in 1:m){
+      boot_results[[i]] <- boot(
+      data = cbind(x, y),
+      a = temp_1[i], 
+      b = temp_2[i], 
+      R = 5000,
+      statistic = boot_spear)
+      
+      if(i == 1){ boot_r <- boot_results[[1]]$t}
+      if(i != 1){boot_r <- cbind(boot_r, boot_results[[i]]$t)}
+      # save distribution and qqplots of bootstraps
+      #boot_t <- lapply(boot_results, function(x) {x[["t"]]}) # each sample
+      plot_boot[[i]] <- plot(boot_results[[i]]) # outputs both histogram and qq-plot
+    }
+    
+    names(plot_boot) <- names[order_data]
+    colnames(boot_r) <- names[order_data]
+
+    # for-loop to compute adjusted confidence intervals
+    #initiallize vectors for bootstrap CI
+    CI_boot <- matrix(NA, nrow = m, ncol = 3)
+
+    for(i in 1:m){
+      # Woods (2007)
+      CI_upper_Z <- tanh(atanh(spear_r) - sqrt((1 + spear_r^2/2)/(n - 3))
+            * qt(p = alpha/(2 * (m + 1 - i)), df = n - 2))
+  
+      CI_lower_Z <- tanh(atanh(spear_r) + sqrt((1 + spear_r^2/2)/(n - 3))
+            * qt(p = alpha/(2 * (m + 1 - i)), df = n - 2))
+      
+      # Bootstrap
+      boot_output <- boot.ci(boot_results[[i]], conf = 1 - alpha/((m + 1 - i)))
+      CI_boot[i, ] <- boot_output$percent[c(1, 4, 5)]
+    }
+  }
+  
+  # cbind rho, p, CI_lower and CI_upper
+  summary_rho <- round(cbind(spear_r[order_data], CI_boot[, 1], 
+                       cbind(CI_lower_Z, CI_upper_Z, p)[order_data, ]), 3)
+  colnames(summary_rho) <- c("Rho", "Confidence", "Lower adj", "Upper adj", "p")
+  
+  summary_rho_boot <- round(cbind(spear_r[order_data], CI_boot), 3)
+  colnames(summary_rho_boot) <- c("Rho", "Confidence", "Lower adj", "Upper adj")
+  
+  
+  # Return Spearman's Rho, confidence interval bounds and p-value
+  invisible(list(summary_rho_Z = summary_rho,
+              summary_rho_boot = summary_rho_boot,
+              rho_complete = spear_r_complete,
+              plot_boot = plot_boot,
+              boot_r = boot_r))
+}
+
+# Compute Rho, confidence intervals and p
+spear_twitter <- spearman_CI(x = data_corr_twitter[, 1:3], y = data_corr_twitter[, 4:7])
+
+# Twitter z-transform
+results_main[[1]] <- spear_twitter$summary_rho_Z
+# Twitter bootstrap
+results_main[[2]] <- spear_twitter$summary_rho_boot
+
+
+spear_stand <- spearman_CI(x = data_corr_stand[, 1:3], y = data_corr_stand[, 4:7])
+# DerStandard z-transform
+results_main[[3]] <- spear_stand$summary_rho_Z
+# DerStandard bootstrap
+results_main[[4]] <- spear_stand$summary_rho_boot
+
+save(results_main, file = "../data/results_main.Rdata")
+save(spear_twitter, file = "../data/spear_twitter.Rdata")
+save(spear_stand, file = "../data/spear_stand.Rdata")
+
+# load("../data/results_main.Rdata")
+# load("../data/spear_twitter.Rdata")
+# load("../data/spear_stand.Rdata")
+
+# call plots (histogram and qq-plot for each computed bootstrap)
+#lapply(spear_twitter$plot_boot, plot)
+# lapply(spear_stand$plot_boot, plot)
+```
+
+
+
+Histograms and qq-plots of bootstrap samples:
+```{r, fig.width = 11, fig.heigth = 10}
+# since normal plot(boot_object) function does not contain a title in order to differentiate between different plots, ggplots for histogram and qq-plots arec reated
+
+# change matrix to dataframe for ggplot
+spear_twitter$boot_r <- as.data.frame(spear_twitter$boot_r)
+# sub " " with "_" in order to be able to read in and evaluate colnames directly in ggplot aes settings.
+colnames(spear_twitter$boot_r) <- gsub(pattern = " ",replacement = "_", x = names(spear_twitter$boot_r))
+
+spear_stand$boot_r <- as.data.frame(spear_stand$boot_r)
+# NAMES ARE WRONG: names(spear_stand$boot_r) HAS A DUPLICATE!
+colnames(spear_stand$boot_r) <- gsub(pattern = " ",replacement = "_", x = names(spear_stand$boot_r))
+
+# create histogram and ggplot for all six Twitter/DerStandard bootstrap samples
+
+twitter_hist <- lapply(1:nrow(spear_twitter$summary_rho_Z), function(.x) {ggplot(data = spear_twitter$boot_r, eval(parse(text = paste("aes(x = ", colnames(spear_twitter$boot_r)[.x], ")")))) + 
+  geom_histogram(col = I("red"), fill = I("blue"), alpha=I(.2), binwidth = 0.03)+
+  labs(title = paste("Histogram of", "\u03C1", row.names(spear_twitter$summary_rho_boot)[.x])) +
+  xlab(paste("\u03C1", row.names(spear_twitter$summary_rho_boot)[.x])) +
+  theme_bw() +
+  theme(plot.title = element_text(size = 9)) +
+  geom_vline(xintercept = spear_twitter$summary_rho_Z[.x, 1])})
+
+
+twitter_qq <- lapply(1:nrow(spear_twitter$summary_rho_Z), function(.x) {ggplot(data = spear_twitter$boot_r, eval(parse(text = paste("aes(sample = ", colnames(spear_twitter$boot_r)[.x], ")")))) +
+  stat_qq() +
+  stat_qq_line() +
+  theme_bw() +
+  labs(title = "QQ-Plot")})
+
+
+stand_hist <- lapply(1:nrow(spear_stand$summary_rho_Z), function(.x) {ggplot(data = spear_stand$boot_r, eval(parse(text = paste("aes(x = ", colnames(spear_stand$boot_r)[.x], ")")))) + 
+  geom_histogram(col = I("red"), fill = I("blue"), alpha=I(.2), binwidth = 0.03)+
+  labs(title = paste("Histogram of", "\u03C1", row.names(spear_stand$summary_rho_boot)[.x])) +
+  xlab(paste("\u03C1", row.names(spear_stand$summary_rho_boot)[.x])) +
+  theme_bw() +  
+  theme(plot.title = element_text(size = 9)) +
+  geom_vline(xintercept = spear_stand$summary_rho_Z[.x, 1])})
+
+
+stand_qq <- lapply(1:nrow(spear_stand$summary_rho_Z), function(.x) {ggplot(data = spear_stand$boot_r, eval(parse(text = paste("aes(sample = ", colnames(spear_stand$boot_r)[.x], ")")))) +
+  stat_qq() +
+  stat_qq_line() +
+  theme_bw() +
+  labs(title = "QQ-Plot")})
+
+# grid.arrange(grobs = twitter_hist, ncol = 3)
+# grid.arrange(grobs = twitter_qq, ncol = 3)
+
+
+#grid.arrange(grobs = c(twitter_hist, twitter_qq), ncol = 4)
+
+# load package
+# rearrange corresponding histrogram and qq-plots next to one another.
+list_twitter <- list.subset(c(twitter_hist, twitter_qq), c(1, 7, 2, 8, 3, 9, 4, 10, 5, 11, 6 , 12))
+
+histboottwitter_anx_GS <-  grid.arrange(grobs = list_twitter[1:2], ncol = 2)
+histboottwitter_ang_GS <-  grid.arrange(grobs = list_twitter[5:6], ncol = 2)
+histboottwitter_depr_GS <-  grid.arrange(grobs = list_twitter[3:4], ncol = 2)
+histboottwitter_anx_LIWC <-  grid.arrange(grobs = list_twitter[7:8], ncol = 2)
+histboottwitter_ang_LIWC <-  grid.arrange(grobs = list_twitter[9:10], ncol = 2)
+histboottwitter_depr_LIWC <-  grid.arrange(grobs = list_twitter[11:12], ncol = 2)
+
+ggsave("../plots/histboottwitter_anx_GS.png", histboottwitter_anx_GS, width = 5, height = 3.5)
+ggsave("../plots/histboottwitter_ang_GS.png", histboottwitter_ang_GS, width = 5, height = 3.5)
+ggsave("../plots/histboottwitter_depr_GS.png", histboottwitter_depr_GS, width = 5, height = 3.5)
+ggsave("../plots/histboottwitter_anx_LIWC.png", histboottwitter_anx_LIWC, width = 5, height = 3.5)
+ggsave("../plots/histboottwitter_ang_LIWC.png", histboottwitter_ang_LIWC, width = 5, height = 3.5)
+ggsave("../plots/histboottwitter_depr_LIWC.png", histboottwitter_depr_LIWC, width = 5, height = 3.5)
+
+
+# histboottwitter <- grid.arrange(grobs = list_twitter, ncol = 4)
+# ggsave("../plots/histboottwitter.png", histboottwitter, width = 11, height = 12)
+
+list_stand <- list.subset(c(stand_hist, stand_qq), c(1, 7, 2, 8, 3, 9, 4, 10, 5, 11, 6 , 12))
+
+histbootstand_anx_GS <-  grid.arrange(grobs = list_stand[1:2], ncol = 2)
+histbootstand_ang_GS <-  grid.arrange(grobs = list_stand[5:6], ncol = 2)
+histbootstand_depr_GS <-  grid.arrange(grobs = list_stand[3:4], ncol = 2)
+histbootstand_anx_LIWC <-  grid.arrange(grobs = list_stand[7:8], ncol = 2)
+histbootstand_ang_LIWC <-  grid.arrange(grobs = list_stand[9:10], ncol = 2)
+histbootstand_depr_LIWC <-  grid.arrange(grobs = list_stand[11:12], ncol = 2)
+
+ggsave("../plots/histbootstand_anx_GS.png", histbootstand_anx_GS, width = 5, height = 3.5)
+ggsave("../plots/histbootstand_ang_GS.png", histbootstand_ang_GS, width = 5, height = 3.5)
+ggsave("../plots/histbootstand_depr_GS.png", histbootstand_depr_GS, width = 5, height = 3.5)
+ggsave("../plots/histbootstand_anx_LIWC.png", histbootstand_anx_LIWC, width = 5, height = 3.5)
+ggsave("../plots/histbootstand_ang_LIWC.png", histbootstand_ang_LIWC, width = 5, height = 3.5)
+ggsave("../plots/histbootstand_depr_LIWC.png", histbootstand_depr_LIWC, width = 5, height = 3.5)
+
+
+# histbootstand <- grid.arrange(grobs = list_stand, ncol = 4)
+# # pdf does not work for unicode characters are used to exhibit rho as Greek letter
+# ggsave("../plots/histbootstand.png", histbootstand, width = 11, height = 12)
+```
+
+
+Correlation Matrix visualizations:
+```{r, fig.width=9, warning = FALSE, message = FALSE}
+# Visualizing the correlation matrix using 
+# square and circle methods
+#ggcorrplot(corrp.mat, method ="square", type = "lower", lab = TRUE)
+df_twitter <- spear_twitter$rho_complete
+df_stand <- spear_stand$rho_complete
+
+
+# only display "main" correlations of interest
+# df_twitter[-c(1:4, 9, 11)] <- NA
+# df_stand[-c(1:4, 9, 11)] <- NA
+
+plot_twitter <- ggcorrplot(t(df_twitter), method ="circle", lab = TRUE)
+plot_stand <- ggcorrplot(t(df_stand), method ="circle", lab = TRUE)
+
+ggsave("../plots/cortable_twitter.pdf", plot_twitter, width = 4.5, height = 3)
+ggsave("../plots/cortable_stand.pdf", plot_stand, width = 4.5, height = 3)
+
+# compute plot of differences: For these correlations of for all correlations (symmetric matrix for visual inspection):
+# corr_table_diff <- ggcorrplot(t(df_twitter) - t(df_stand), method ="circle", lab = TRUE, title = "\u0394 \u03C1 Twitter - Standard")
+```
+
+
+Next, Spearman's rank correlation coefficients are computed between the same constructs but as a function of the time window we used to include the social media data for the calculation of the emotion and sentiment measures. The final point for each survey wave is fixed on the value that was pre-registered at first. This means for each survey wave, the date until 75% of the participants responded to the survey is fixed and all data-points of the survey until this point are included. For the sentiment scores we vary the included time-frame from 14 days to 1 day prior to survey onset until this fixed date the last of the 75% participants responded to the survey.
+```{r}
+# # For DerStandard
+# load("../data/liwc_stand_corrected_time.RData")
+# load("../data/gs_stand_corrected_time.RData")
+# # For Twitter
+# load("../data/liwc_twitter_corrected_time.RData")
+# load("../data/gs_twitter_corrected_time.RData")
+# # survey data: only including the first 75% of participants each survey wave 
+# load("../data/d2_vars.Rdata")
+
+# compute Spearman's rho for differing time spans
+# Twitter
+liwc_twitter_rho <- lapply(1:14, function(.x) {cor(d2_vars[, 2:4], 
+                                                 cbind(gs_twitter_corrected_time[[.x]]
+                               [, "negative.corrected"],liwc_twitter_corrected_time[[.x]]
+                               [, c("Anx.corrected", "Sad.corrected", 
+                                    "Anger.corrected")]), 
+                               method = "spearman", use = "complete.obs")})
+
+liwc_twitter_rho <- t(sapply(liwc_twitter_rho, FUN = "[", c(1:4, 8, 12)))
+
+# add column names
+#load("../data/results_main.Rdata")
+colnames(liwc_twitter_rho) <- row.names(results_main[[1]])[c(1:4, 6, 5)]
+
+
+# DerStandard
+liwc_stand_rho <- lapply(1:14, function(.x) {cor(d2_vars[, 2:4], 
+                                                 cbind(gs_stand_corrected_time[[.x]]
+                               [, "negative.corrected"],liwc_stand_corrected_time[[.x]]
+                               [, c("Anx.corrected", "Sad.corrected", 
+                                    "Anger.corrected")]), 
+                               method = "spearman", use = "complete.obs")})
+
+liwc_stand_rho <- t(sapply(liwc_stand_rho, FUN = "[", c(1:4, 8, 12)))
+
+# add column names
+colnames(liwc_stand_rho) <- colnames(liwc_twitter_rho)
+
+# for comparison: anger and anxiety: -7 days, depression: - 14 days
+# round(liwc_stand_rho[c(7, 14), ], 3)
+# results_main[[3]][, 1]
+
+# add time lag variable as first column and transform to df for plots 
+liwc_twitter_rho <- data.frame(lag = 1:14, liwc_twitter_rho)
+liwc_stand_rho <- data.frame(lag = 1:14, liwc_stand_rho)
+
+
+# plot development of Spearman's Rho as a function of time lag
+
+# settings ####
+labelsize <- 11
+axisfontsize <- 10
+emo_cols <- c("Anx Surv Neg GS" ="red", 
+              "Depr Surv Neg GS"="steelblue4",
+              "Anger Surv Neg GS" = "orange",
+              "Anx Surv Anx" = "red4",
+              "Depr Surv Sad"="steelblue2",
+              "Anger Surv Anger" = "yellow")
+
+# pivot for ggplot
+liwc_twitter_rho <- pivot_longer(liwc_twitter_rho, cols = 2:7)
+
+liwc_stand_rho <- pivot_longer(liwc_stand_rho, cols = 2:7)
+
+
+# Twitter
+plt_twitter_lag <- ggplot() +
+  geom_line(data = liwc_twitter_rho, aes(x = lag, y= value, 
+                                            colour = name,  linetype = name), 
+            alpha = 0.6, size = 0.8)+
+  ylab("Spearman's \u03C1")  +
+  xlab("Time-Lag in Days") +
+  #ggtitle("Twitter") +
+  scale_x_continuous(breaks = 1:14) +
+  theme_bw()+ theme(text=element_text(size=axisfontsize), axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="bottom",
+                    legend.text = element_text(size=6.5),
+                    legend.key.size = unit(1.5,"line"),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  theme(plot.title = element_text(size = 10))+
+  guides(color=guide_legend(nrow=2, byrow=TRUE),
+         shape = guide_legend(override.aes = list(size = 2)))
+  
+#plt_twitter_lag
+
+# Der Standard
+plt_stand_lag <- ggplot() +
+  geom_line(data = liwc_stand_rho, aes(x = lag, y= value, 
+                                            colour = name,  linetype = name), 
+            alpha = 0.6, size = 0.8)+
+  ylab("Spearman's \u03C1")  +
+  xlab("Time-Lag in Days") +
+  #ggtitle("Der Standard") +
+  scale_x_continuous(breaks = 1:14) +
+  theme_bw()+ theme(text=element_text(size=axisfontsize), axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="bottom",
+                    legend.text = element_text(size=6.5),
+                    legend.key.size = unit(1.5,"line"),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  theme(plot.title = element_text(size = 10))+
+  guides(color=guide_legend(nrow=2, byrow=TRUE),override.aes = list(size = 2))#+
+  #guides(shape = guide_legend(override.aes = list(size = 4)))
+         
+ggsave("../plots/plt_twitter_lag.png", plt_twitter_lag, width = 10, height = 4.5)
+ggsave("../plots/plt_stand_lag.png", plt_stand_lag, width = 10, height = 4.5)
+
+#plt_stand_lag
+
+# if one decides to show these two plots next to one another: decrease size of title
+# plt_lag <- grid.arrange(plt_twitter_lag, plt_stand_lag, nrow = 2)
+# ggsave("../plots/plotlag.pdf", plt_lag, width = 10, height = 4.5)
+```
+
+Same correlation time series plot but now using "_50" data: only including the first 50% of the respondents to the survey:
+```{r}
+# # For DerStandard
+# load("../data/liwc_stand_corrected_time_50.RData")
+# load("../data/gs_stand_corrected_time_50.RData")
+# # For Twitter
+# # Import baseline-corrected Twitter data
+# load("../data/liwc_twitter_corrected_time_50.RData")
+# load("../data/gs_twitter_corrected_time_50.RData")
+# # survey data: only including the first 50% of participants each survey wave
+# load("../data/d2_vars_50.Rdata")
+
+# compute Spearman's rho for differing time spans
+# Twitter
+liwc_twitter_rho_50 <- lapply(1:14, function(.x) {cor(d2_vars_50[, 2:4], 
+                                                 cbind(gs_twitter_corrected_time_50[[.x]]
+                               [, "negative.corrected"],liwc_twitter_corrected_time_50[[.x]]
+                               [, c("Anx.corrected", "Sad.corrected", 
+                                    "Anger.corrected")]), 
+                               method = "spearman", use = "complete.obs")})
+
+liwc_twitter_rho_50 <- t(sapply(liwc_twitter_rho_50, FUN = "[", c(1:4, 8, 12)))
+
+# add column names
+#load("../data/results_main.Rdata")
+colnames(liwc_twitter_rho_50) <- row.names(results_main[[1]])[c(1:4, 6, 5)]
+
+# DerStandard
+liwc_stand_rho_50 <- lapply(1:14, function(.x) {cor(d2_vars_50[, 2:4], 
+                                                 cbind(gs_stand_corrected_time_50[[.x]]
+                               [, "negative.corrected"],liwc_stand_corrected_time_50[[.x]]
+                               [, c("Anx.corrected", "Sad.corrected", 
+                                    "Anger.corrected")]), 
+                               method = "spearman", use = "complete.obs")})
+
+liwc_stand_rho_50 <- t(sapply(liwc_stand_rho_50, FUN = "[", c(1:4, 8, 12)))
+
+# add column names
+colnames(liwc_stand_rho_50) <- colnames(liwc_twitter_rho_50)
+
+# add time lag variable as first column and transform to df for plots 
+liwc_twitter_rho_50 <- data.frame(lag = 1:14, liwc_twitter_rho_50)
+liwc_stand_rho_50 <- data.frame(lag = 1:14, liwc_stand_rho_50)
+
+
+# plot development of Spearman's Rho as a function of time lag
+# settings
+labelsize <- 11
+axisfontsize <- 10
+emo_cols <- c("Anx Surv Neg GS" ="red", 
+              "Depr Surv Neg GS"="steelblue4",
+              "Anger Surv Neg GS" = "orange",
+              "Anx Surv Anx" = "red4",
+              "Depr Surv Sad"="steelblue2",
+              "Anger Surv Anger" = "yellow")
+
+# to dataframe for ggplot
+liwc_twitter_rho_50 <- pivot_longer(liwc_twitter_rho_50, cols = 2:7)
+
+liwc_stand_rho_50 <- pivot_longer(liwc_stand_rho_50, cols = 2:7)
+
+# Twitter
+plt_twitter_lag_50 <- ggplot() +
+  geom_line(data = liwc_twitter_rho_50, aes(x = lag, y= value, 
+                                            colour = name,  linetype = name), 
+            alpha = 0.6, size = 0.8)+
+  ylab("Spearman's \u03C1")  +
+  xlab("Time-Lag in Days") +
+  #ggtitle("Twitter") +
+  scale_x_continuous(breaks = 1:14) +
+  theme_bw()+ theme(text=element_text(size=axisfontsize), axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="bottom",
+                    legend.text = element_text(size=6.5),
+                    legend.key.size = unit(2,"line"),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  theme(plot.title = element_text(size = 10))+
+  guides(color=guide_legend(nrow=2, byrow=TRUE))
+  
+
+#plt_twitter_lag_50
+
+# Der Standard
+plt_stand_lag_50 <- ggplot() +
+  geom_line(data = liwc_stand_rho_50, aes(x = lag, y= value, 
+                                            colour = name,  linetype = name), 
+            alpha = 0.6, size = 0.8)+
+  ylab("Spearman's \u03C1")  +
+  xlab("Time-Lag in Days") +
+  #ggtitle("Der Standard") +
+  scale_x_continuous(breaks = 1:14) +
+  theme_bw()+ theme(text=element_text(size=axisfontsize), axis.text=element_text(size=labelsize), 
+                    #axis.title.x = element_blank(),
+                    legend.title=element_blank(), legend.position="bottom",
+                    legend.text = element_text(size=6.5),
+                    legend.key.size = unit(2,"line"),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm"))+
+  theme(plot.title = element_text(size = 10))+
+  guides(color=guide_legend(nrow=2, byrow=TRUE))
+  
+# plt_stand_lag_50
+ggsave("../plots/plt_twitter_lag_50.png", plt_twitter_lag_50, width = 10, height = 4.5)
+ggsave("../plots/plt_stand_lag_50.png", plt_stand_lag_50, width = 10, height = 4.5)
+
+# if one decides to show these two plots next to one another: decrease size of title
+# plt_lag_50 <-grid.arrange(plt_twitter_lag_50, plt_stand_lag_50, nrow = 2)
+# ggsave("../plots/plotlag_50.pdf", plt_lag_50, width = 9, height = 9)
+```
+
+
+# Analyses split by gender and federal-state
+
+## Multiple linear regression: Linear influence of sentiment measures over and above demographic variables
+Since demographic information concerning gender and federal states are mostly available for Twitter postings, we like to investigate whether our sentiment measures (i.e. GermanSentiment or LIWC) still play a prominent role in explaining the survey scales when firstly controlling for gender and federal state. This will be achieved by employing multiple linear regression analyses.
+Eventhough the data sample is limited, the assumptions of the linear model, i.e. the corresponding residuals, are analyzed.
+
+```{r}
+# import data
+load("../data/liwc_federal_gender.RData")
+load("../data/gs_federal_gender.RData")
+# survey data: only including the first 75% of participants each survey wave 
+load("../data/d2_vars_federal.RData")
+
+# for anger, anxiety analyes -7 days-75% responded, for depression -14 days - 75 %
+# create dataframe
+df_regression <- cbind.data.frame(gs_federal_gender[[7]][, 1:3], d2_vars_federal[, 4:6], gs_federal_gender[[7]]['negative.corrected'], liwc_federal_gender[[7]][, 12:13], liwc_federal_gender[[14]]['Sad.corrected'])
+
+# change column names
+names(df_regression)[2:ncol(df_regression)] <- c("Region", "Gender", "Anxiety", "Depression", "Anger", "GS_Negative", "LIWC_Anxiety", "LIWC_Anger", "LIWC_Sadness")
+```
+
+
+### Anxiety GS (-7 days - 75% responded) 
+
+```{r}
+set.seed(100)
+# Hierarchical regression: survey anxiety construct
+# null model: only containing demographic variables
+reg_anx_null <- lm(Anxiety ~ Gender + Region, data = df_regression)
+# full model: now include negative.corrected 
+reg_anx_full <- update(reg_anx_null, formula = . ~ . + GS_Negative)
+
+# print and save diagnostic plots for full model
+# pairs_hist(df_regression[,c("Region", "Gender", "Anxiety", "GS_Negative")])
+# pairs(df_regression[,c("Region", "Gender", "Anxiety", "GS_Negative")])
+
+# partial correlation plot
+# explain in the dependent variable after removing sysematic variation explained by gender and federal state with the part of independent variable (sentiment measure) uncorrelated with Gender and Region
+Y_resid_anx_GS <- resid(reg_anx_null) 
+X_resid_GS <- resid(lm(GS_Negative ~ Gender + Region, df_regression))
+
+pcp_anxiety_GS <- ggplot(df_regression, aes(x = X_resid_GS, y = Y_resid_anx_GS)) +
+  geom_point() +
+  labs(x="GS Negative | Gender + Region", y = "Anxiety | Gender + Region")+
+  theme_bw() +
+  geom_smooth(method = lm)
+
+#pcp_anxiety_GS
+ggsave("../plots/pcp_anxiety_GS.pdf", pcp_anxiety_GS, width = 5, height = 3.5)
+
+diagnostic_anx_GS <- diagnostic_plots(reg_anx_full)
+ggsave("../plots/diagnostic_anx_GS.pdf", diagnostic_anx_GS, width = 5.2, height = 3.5)
+
+# calculate and print model comparison, bootstrap for CI R^2
+anova_anx_GS <- apa_print(list(Baseline = reg_anx_null, 'GS Negative' = 
+                                 reg_anx_full), boot_samples = 2000)
+
+save(anova_anx_GS, file = "../data/anova_anx_GS.RData")
+```
+
+
+### Anger GS (-7 days - 75% responded) 
+
+```{r}
+set.seed(100)
+# Hierarchical regression: survey anger construct
+# null model: only containing demographic variables
+reg_ang_null <- lm(Anger ~ Gender + Region, data = df_regression)
+# full model: now include negative.corrected
+reg_ang_full <- update(reg_ang_null, formula = . ~ . + GS_Negative)
+
+# print and save diagnostic plots for full model
+# pairs(df_gs[,c("Region", "Gender", "Anger", "GS_Negative")])
+
+# partial correlation plot
+Y_resid_ang_GS <- resid(reg_ang_null) 
+
+pcp_anger_GS <- ggplot(df_regression, aes(x = X_resid_GS, y = Y_resid_ang_GS)) +
+  geom_point() +
+  labs(x="GS Negative | Gender + Region", y = "Anger | Gender + Region")+
+  theme_bw() +
+  geom_smooth(method = lm)
+
+#pcp_anger_GS
+ggsave("../plots/pcp_anger_GS.pdf", pcp_anger_GS, width = 5, height = 3.5)
+
+diagnostic_ang_GS <- diagnostic_plots(reg_ang_full)
+ggsave("../plots/diagnostic_ang_GS.pdf", diagnostic_ang_GS, width = 5.2, height = 3.5)
+
+# calculate and print model comparison, bootstrap for CI R^2
+anova_ang_GS <- apa_print(list(Baseline = reg_ang_null, 'GS Negative' = 
+                                 reg_ang_full), boot_samples = 2000)
+save(anova_ang_GS, file = "../data/anova_ang_GS.RData")
+```
+
+
+### Depression GS (-14 days - 75% responded) 
+
+```{r}
+set.seed(100)
+# Hierarchical regression: survey depression construct
+# null model: only containing demographic variables
+reg_depr_null <- lm(Depression ~ Gender + Region, data = df_regression)
+# full model: now include negative.corrected
+reg_depr_full <- update(reg_depr_null, formula = . ~ . + GS_Negative)
+
+# print and save diagnostic plots for full model
+# pairs(df_gs[,c("Region", "Gender", "Depression", "GS_Negative")])
+
+# partial correlation plot
+Y_resid_depr_GS <- resid(reg_depr_null) 
+
+pcp_depr_GS <- ggplot(df_regression, aes(x = X_resid_GS, y = Y_resid_depr_GS)) +
+  geom_point() +
+  labs(x="GS Negative | Gender + Region", y = "Depression | Gender + Region")+
+  theme_bw() +
+  geom_smooth(method = lm)
+
+#pcp_depr_GS
+ggsave("../plots/pcp_depr_GS.pdf", pcp_depr_GS, width = 5, height = 3.5)
+
+diagnostic_depr_GS <- diagnostic_plots(reg_depr_full)
+ggsave("../plots/diagnostic_depr_GS.pdf", diagnostic_depr_GS, width = 5.2, height = 3.5)
+
+# calculate and print model comparison, bootstrap for CI R^2
+anova_depr_GS <- apa_print(list(Baseline = reg_depr_null, 'GS Negative' = 
+                                 reg_depr_full), boot_samples = 2000)
+save(anova_depr_GS, file = "../data/anova_depr_GS.RData")
+```
+
+
+
+### Anxiety LIWC (-7 days - 75% responded) 
+
+```{r}
+set.seed(100)
+# Hierarchical regression: survey anxiety construct
+# null model already computed above: reg_anx_null
+# full model: now include Anx.corrected
+reg_anx_full <- update(reg_anx_null, formula = . ~ . + LIWC_Anxiety)
+
+# print and save diagnostic plots for full model
+#pairs(df_liwc[,c("Region", "Gender", "Anxiety", "LIWC_Anxiety")])
+
+# partial correlation plot
+X_resid_anx_LIWC <- resid(lm(LIWC_Anxiety ~ Gender + Region, df_regression))
+Y_resid_anx_LIWC <- resid(reg_anx_null) 
+
+pcp_anxiety_LIWC <- ggplot(df_regression, aes(x = X_resid_anx_LIWC, y = Y_resid_anx_LIWC)) +
+  geom_point() +
+  labs(x="LIWC Anxiety | Gender + Region", y = "Anxiety | Gender + Region")+
+  theme_bw() +
+  geom_smooth(method = lm)
+
+#pcp_anxiety_LIWC
+ggsave("../plots/pcp_anxiety_LIWC.pdf", pcp_anxiety_LIWC, width = 5, height = 3.5)
+
+diagnostic_anx_LIWC <- diagnostic_plots(reg_anx_full)
+ggsave("../plots/diagnostic_anx_LIWC.pdf", diagnostic_anx_LIWC, width = 5.2, height = 3.5)
+
+# calculate and print model comparison, bootstrap for CI R^2
+anova_anx_LIWC <- apa_print(list(Baseline = reg_anx_null, 'LIWC Anxiety' = 
+                                 reg_anx_full), boot_samples = 2000)
+
+save(anova_anx_LIWC, file = "../data/anova_anx_LIWC.RData")
+```
+
+
+### Anger LIWC (-7 days - 75% responded) 
+
+```{r}
+set.seed(100)
+# Hierarchical regression: survey anger construct
+# null model already computed above: reg_ang_null
+# full model: now include Anger.corrected
+reg_ang_full <- update(reg_ang_null, formula = . ~ . + LIWC_Anger)
+
+# print and save diagnostic plots for full model
+#pairs(df_liwc[,c("Region", "Gender", "Anger", "LIWC_Anger")])
+
+# partial correlation plot
+X_resid_ang_LIWC <- resid(lm(LIWC_Anger ~ Gender + Region, df_regression))
+Y_resid_ang_LIWC <- resid(reg_ang_null) 
+
+pcp_anger_LIWC <- ggplot(df_regression, aes(x = X_resid_ang_LIWC, y = Y_resid_ang_LIWC)) +
+  geom_point() +
+  labs(x="LIWC Anger | Gender + Region", y = "Anger | Gender + Region")+
+  theme_bw() +
+  geom_smooth(method = lm)
+
+#pcp_anger_LIWC
+ggsave("../plots/pcp_anger_LIWC.pdf", pcp_anger_LIWC, width = 5, height = 3.5)
+
+diagnostic_ang_LIWC <- diagnostic_plots(reg_ang_full)
+ggsave("../plots/diagnostic_ang_LIWC.pdf", diagnostic_ang_LIWC, width = 5.2, height = 3.5)
+
+# calculate and print model comparison, bootstrap for CI R^2
+anova_ang_LIWC <- apa_print(list(Baseline = reg_ang_null, 'LIWC Anger' = 
+                                 reg_ang_full), boot_samples = 2000)
+
+save(anova_ang_LIWC, file = "../data/anova_ang_LIWC.RData")
+```
+
+
+### Depression LIWC (-14 days - 75% responded) 
+
+```{r}
+set.seed(100)
+# Hierarchical regression: survey depression construct
+# null model already computed above: reg_depr_null
+# full model: now include Anger.corrected
+reg_depr_full <- update(reg_depr_null, formula = . ~ . + LIWC_Sadness)
+
+# print and save diagnostic plots for full model
+#pairs(df_liwc[,c("Region", "Gender", "Depression", "LIWC_Sadness")])
+
+# partial correlation plot
+X_resid_depr_LIWC <- resid(lm(LIWC_Sadness ~ Gender + Region, df_regression))
+Y_resid_depr_LIWC <- resid(reg_depr_null) 
+
+
+pcp_depr_LIWC <- ggplot(df_regression, aes(x = X_resid_depr_LIWC, y = Y_resid_depr_LIWC)) +
+  geom_point() +
+  labs(x="LIWC Sadness | Gender + Region", y = "Depression | Gender + Region")+
+  theme_bw() +
+  geom_smooth(method = lm)
+
+#pcp_depr_LIWC
+ggsave("../plots/pcp_depr_LIWC.pdf", pcp_depr_LIWC, width = 5, height = 3.5)
+
+# save all partial correlation plots in a list
+# pcp_plots <- grid.arrange(pcp_anger_GS, pcp_anxiety_GS, pcp_depr_GS,
+#                           pcp_anger_LIWC, pcp_anxiety_LIWC, pcp_depr_LIWC,
+#                           ncol = 2, nrow = 3)
+# 
+# ggsave("../plots/pcp_plots.pdf", pcp_plots, width = 11, height = 12)
+
+
+diagnostic_depr_LIWC <- diagnostic_plots(reg_depr_full)
+ggsave("../plots/diagnostic_depr_LIWC.pdf", diagnostic_depr_LIWC, width = 5.2, height = 3.5)
+
+# calculate and print model comparison, bootstrap for CI R^2
+anova_depr_LIWC <- apa_print(list(Baseline = reg_depr_null, 'LIWC Sadness' = 
+                                 reg_depr_full), boot_samples = 2000)
+save(anova_depr_LIWC, file = "../data/anova_depr_LIWC.RData")
+```
+
+
+Influence of time window on the regression coefficient of the sentiment measure when controlling for gender and federal state.
+
+```{r}
+# Sentiment regression coefficient for different time lags + 95% CI
+ppc_lag_anxiety_GS <- matrix(NA, nrow = 14, ncol = 3)
+colnames(ppc_lag_anxiety_GS) <- c("Coefficient", "Lower CI", "Upper CI")
+ppc_lag_anger_GS <- matrix(NA, nrow = 14, ncol = 3)
+colnames(ppc_lag_anger_GS) <- colnames(ppc_lag_anxiety_GS) 
+ppc_lag_depr_GS <- matrix(NA, nrow = 14, ncol = 3)
+colnames(ppc_lag_depr_GS) <- colnames(ppc_lag_anxiety_GS)
+ppc_lag_anxiety_LIWC <- matrix(NA, nrow = 14, ncol = 3)
+colnames(ppc_lag_anxiety_LIWC) <- colnames(ppc_lag_anxiety_GS)
+ppc_lag_anger_LIWC <- matrix(NA, nrow = 14, ncol = 3)
+colnames(ppc_lag_anger_LIWC) <- colnames(ppc_lag_anxiety_GS)
+ppc_lag_depr_LIWC <- matrix(NA, nrow = 14, ncol = 3)
+colnames(ppc_lag_depr_LIWC) <- colnames(ppc_lag_anxiety_GS)
+
+for(i in 14:1){
+  df_regression[, 7:10] <- cbind.data.frame(gs_federal_gender[[i]]['negative.corrected'],
+                                            liwc_federal_gender[[i]][, 12:13],
+                                            liwc_federal_gender[[i]]['Sad.corrected'])
+  names(df_regression)[2:ncol(df_regression)] <- c("Region", "Gender", "Anxiety", "Depression", "Anger", "GS_Negative", "LIWC_Anxiety", "LIWC_Anger", "LIWC_Sadness")
+  
+  lm_anxiety_GS <- lm(Anxiety ~ Gender + Region + GS_Negative, df_regression)
+  ppc_lag_anxiety_GS[i, 1] <- coef(lm_anxiety_GS)[7]
+  ppc_lag_anxiety_GS[i, 2:3] <- confint(lm_anxiety_GS)[7, c('2.5 %', '97.5 %')]
+  
+  lm_anger_GS <- lm(Anger ~ Gender + Region + GS_Negative, df_regression)
+  ppc_lag_anger_GS[i, 1] <- coef(lm_anger_GS)[7]
+  ppc_lag_anger_GS[i, 2:3] <- confint(lm_anger_GS)[7, c('2.5 %', '97.5 %')]
+
+  lm_depr_GS <- lm(Depression ~ Gender + Region + GS_Negative, df_regression)
+  ppc_lag_depr_GS[i, 1] <- coef(lm_depr_GS)[7]
+  ppc_lag_depr_GS[i, 2:3] <- confint(lm_depr_GS)[7, c('2.5 %', '97.5 %')]
+
+  lm_anxiety_LIWC <- lm(Anxiety ~ Gender + Region + LIWC_Anxiety, df_regression)
+  ppc_lag_anxiety_LIWC[i, 1] <- coef(lm_anxiety_LIWC)[7]
+  ppc_lag_anxiety_LIWC[i, 2:3] <- confint(lm_anxiety_LIWC)[7, c('2.5 %', '97.5 %')]
+  
+  lm_anger_LIWC <- lm(Anger ~ Gender + Region + LIWC_Anger, df_regression)
+  ppc_lag_anger_LIWC[i, 1] <- coef(lm_anger_LIWC)[7]
+  ppc_lag_anger_LIWC[i, 2:3] <- confint(lm_anger_LIWC)[7, c('2.5 %', '97.5 %')]
+  
+  lm_depr_LIWC <- lm(Depression ~ Gender + Region + LIWC_Sadness, df_regression)
+  ppc_lag_depr_LIWC[i, 1] <- coef(lm_depr_LIWC)[7]
+  ppc_lag_depr_LIWC[i, 2:3] <- confint(lm_depr_LIWC)[7, c('2.5 %', '97.5 %')]
+}
+
+coef_lags <- list(anxiety_GS = ppc_lag_anxiety_GS, anger_GS = ppc_lag_anger_GS,
+                  depr_GS = ppc_lag_depr_GS, anxiety_LIWC = ppc_lag_anxiety_LIWC,
+                  anger_LIWC = ppc_lag_anger_LIWC, depr_LIWC = ppc_lag_depr_LIWC)
+
+save(coef_lags, file = "../data/coef_lags.RData")
+```
+
+```{r}
+# Plots of computed regression coefficient + CI
+
+for(i in 1:length(coef_lags)){
+  coef_lags[[i]] <- cbind.data.frame(1:nrow(coef_lags[[1]]), coef_lags[[i]])
+  colnames(coef_lags[[i]])[1] <- "TimeLag"
+  colnames(coef_lags[[i]])[3:4] <- c("Low", "High")
+}
+
+
+# Anger GS Negative
+coef_lags_anger_GS <- ggplot(coef_lags$anger_GS[1:7, ], aes(x = TimeLag,y=Coefficient)) + 
+  geom_line(color = "dark green") + 
+  geom_ribbon(aes(ymin=Low, ymax=High), alpha=0.2, fill = "green",
+              color = "black", linetype = "dotted") +
+  #labs(title = "Anger - GS Negative") +
+  xlab("Time-Lag") +
+  theme_bw() + 
+  scale_x_continuous(breaks=1:14)
+
+ggsave("../plots/coef_lags_anger_GS.pdf", coef_lags_anger_GS, width = 5.2, height = 3.5)
+
+# Anxiety GS Negative
+coef_lags_anxiety_GS <- ggplot(coef_lags$anxiety_GS[1:7, ], aes(x = TimeLag,y=Coefficient)) + 
+  geom_line(color = "dark green") + 
+  geom_ribbon(aes(ymin=Low, ymax=High), alpha=0.2, fill = "green",
+              color = "black", linetype = "dotted") +
+  #labs(title = "Anxiety - GS Negative") +
+  xlab("Time-Lag") +
+  theme_bw()+ 
+  scale_x_continuous(breaks=1:14)
+
+ggsave("../plots/coef_lags_anxiety_GS.pdf", coef_lags_anxiety_GS, width = 5.2, height = 3.5)
+
+# Depression GS Negative
+coef_lags_depr_GS <- ggplot(coef_lags$depr_GS, aes(x = TimeLag,y=Coefficient)) + 
+  geom_line(color = "dark green") + 
+  geom_ribbon(aes(ymin=Low, ymax=High), alpha=0.2, fill = "green",
+              color = "black", linetype = "dotted") +
+  #labs(title = "Depression - GS Negative") +
+  xlab("Time-Lag") +
+  theme_bw()+ 
+  scale_x_continuous(breaks=1:14)
+
+ggsave("../plots/coef_lags_depr_GS.pdf", coef_lags_depr_GS, width = 5.2, height = 3.5)
+
+# Anger LIWC Anger
+coef_lags_anger_LIWC <- ggplot(coef_lags$anger_LIWC[1:7, ], aes(x = TimeLag,y=Coefficient)) + 
+  geom_line(color = "dark green") + 
+  geom_ribbon(aes(ymin=Low, ymax=High), alpha=0.2, fill = "green",
+              color = "black", linetype = "dotted") +
+  #labs(title = "Anger - LIWC Anger") +
+  xlab("Time-Lag") +
+  theme_bw()+ 
+  scale_x_continuous(breaks=1:14)
+
+ggsave("../plots/coef_lags_anger_LIWC.pdf", coef_lags_anger_LIWC, width = 5.2, height = 3.5)
+
+# Anxiety LIWC Anxiety
+coef_lags_anxiety_LIWC <- ggplot(coef_lags$anxiety_LIWC[1:7, ], aes(x = TimeLag,y=Coefficient)) + 
+  geom_line(color = "dark green") + 
+  geom_ribbon(aes(ymin=Low, ymax=High), alpha=0.2, fill = "green",
+              color = "black", linetype = "dotted") +
+  #labs(title = "Anxiety - LIWC Anxiety") +
+  xlab("Time-Lag") +
+  theme_bw()+ 
+  scale_x_continuous(breaks=1:14)
+
+ggsave("../plots/coef_lags_anxiety_LIWC.pdf", coef_lags_anxiety_LIWC, width = 5.2, height = 3.5)
+
+
+# Depression LIWC Sadness
+coef_lags_depr_LIWC <- ggplot(coef_lags$depr_LIWC, aes(x = TimeLag,y=Coefficient)) + 
+  geom_line(color = "dark green") + 
+  geom_ribbon(aes(ymin=Low, ymax=High), alpha=0.2, fill = "green",
+              color = "black", linetype = "dotted") +
+  #labs(title = "Depression - LIWC Sadness") +
+  xlab("Time-Lag") +
+  theme_bw()+ 
+  scale_x_continuous(breaks=1:14)
+
+ggsave("../plots/coef_lags_depr_LIWC.pdf", coef_lags_depr_LIWC, width = 5.2, height = 3.5)
+```
+
+
+## Regression analyses: Prediction and Model selection
+The aim of this set of analyses is to perform model selection for three multiple linear regression models. For the first one, the survey anger construct is regressed on the LIWC anger construct and the two covariates gender and federal state in a forward step-wise manner. This means firstly, we compute this regression with a null model and then consecutively add another covariate. We will also perform a best subset analyses, i.e. compute the regression model using every possible combination of covariates, and then decide on the best one using an information criterion that penalizes the number of included parameters. To increase the robustness of this analysis, different information criteria are used to see whether the results are consistent (e.g. AIC, BIC). The winning model minimizes (possibly consistently) the criteria. 
+This type of model-selection is also performed for two other regression models. For the second one, the survey anxiety construct is regressed on the LIWC anxiety, the GS negative as well as the gender and federal state characteristics.
+For the third one, the survey depression construct is regressed on the LIWC sadness and the GS negative scale as well as the above-mentioned demographic variables.
+It indeed makes sense, to perform this model-selection in this manner, since in the end, it would be great to have a resulting winning model that could be used for future predictions and on the same time, investigate the strength of the linear association between the included independent variables. 
+
+
+
+### Import survey data split by federal state and gender
+```{r}
+# import data
+load("../data/liwc_federal_gender.RData")
+load("../data/gs_federal_gender.RData")
+# survey data: only including the first 75% of participants each survey wave 
+load("../data/d2_vars_federal.RData")
+```
+
+
+### Computation of linear regressions and model selection
+
+```{r}
+set.seed(100)
+library(leaps) # needed for bestglm
+library(bestglm) # package for best subset selection
+library(dummies) # in order to create n-1 dummy variables for categorical variables with n = i, i > 2 levels.
+# args(bestglm)
+
+# create df for bestglm()
+# federal state is a categorical variable with 5 levels
+federal_state <- liwc_federal_gender[[7]]$federal_state
+federal_state <- as.data.frame(dummy(federal_state))
+# we only need 5-1 dummies since we include an intercept in the model
+federal_state <- federal_state[, 2:ncol(federal_state)]
+colnames(federal_state) <- c("Salzburg", "Styria", "Tyrol", "Vienna")
+#head(federal_state)
+
+# cbind Xy matrix for first best subset analysis: anxiety anger construct
+# dependent measure needs to be in the last column of Xy
+
+# this is done for varying timeframes, the best models are then compared
+anxiety_best_subset_AIC <- vector(mode = "list", length = 14)
+anxiety_best_subset_BIC <- vector(mode = "list", length = 14)
+
+anger_best_subset_AIC <- vector(mode = "list", length = 14)
+anger_best_subset_BIC <- vector(mode = "list", length = 14)
+
+depr_best_subset_AIC <- vector(mode = "list", length = 14)
+depr_best_subset_BIC <- vector(mode = "list", length = 14)
+
+for(i in 1:14){
+  Xy <- cbind(federal_state, liwc_federal_gender[[i]][, c("gender", "Posemo.corrected",
+                                                          "Negemo.corrected", "Anx.corrected",
+                                                          "Anger.corrected", "Sad.corrected")],
+            gs_federal_gender[[i]][, c("positive.corrected", "negative.corrected")],
+            d2_vars_federal$anxiety)
+  colnames(Xy)[length(colnames(Xy))] <- c("Anxiety")
+  #head(Xy)
+  Xy_ang <- Xy
+  Xy_ang[, "Anxiety"] <- d2_vars_federal$anger
+  colnames(Xy_ang)[length(colnames(Xy))] <- c("Anger")
+
+  Xy_depr <- Xy
+  Xy_depr[, "Anxiety"] <- d2_vars_federal$depression
+  colnames(Xy_depr)[length(colnames(Xy))] <- c("Depression")
+  
+  # Xy now holds 12 regressor variable, resulting in 2^12 model combinations
+  # we do this with AIC, BIC and LOOCV
+  bestAIC <- bestglm(Xy, IC = "AIC")
+  bestBIC <- bestglm(Xy, IC = "BIC")
+  
+  bestAIC_ang <- bestglm(Xy_ang, IC = "AIC")
+  bestBIC_ang <- bestglm(Xy_ang, IC = "BIC")
+  
+  bestAIC_depr <- bestglm(Xy_depr, IC = "AIC")
+  bestBIC_depr <- bestglm(Xy_depr, IC = "BIC")
+  
+  # number of coefficients in the best model (- 1 because we exclude the intercept term)
+  NAIC <- length(coef(bestAIC$BestModel)) - 1
+  NBIC <- length(coef(bestBIC$BestModel)) - 1
+  ncoef_bestmodel <- c(NAIC, NBIC)
+  names(ncoef_bestmodel) <- c("AIC", "BIC")
+  
+  anxiety_best_subset_AIC[[i]] <- list(BestModels = bestAIC$BestModels, 
+                                   BestModel = bestAIC$BestModel, ncoef = ncoef_bestmodel)
+  
+  anxiety_best_subset_BIC[[i]] <- list(BestModels = bestBIC$BestModels, 
+                                   BestModel = bestBIC$BestModel, ncoef = ncoef_bestmodel)
+  
+  anger_best_subset_AIC[[i]] <- list(BestModels = bestAIC_ang$BestModels)
+  anger_best_subset_BIC[[i]] <- list(BestModels = bestBIC_ang$BestModels)
+  depr_best_subset_AIC[[i]] <- list(BestModels = bestAIC_depr$BestModels)
+  depr_best_subset_BIC[[i]] <- list(BestModels = bestBIC_depr$BestModels)
+}
+
+# winning mod for rownames of later model, mod_name to call model with Xy colnames
+#winning_mod_anxiety_AIC <- character(length = 5)
+mod_name_anxiety_AIC <- character(length = 5)
+mod_name_anger_AIC <- character(length = 5)
+mod_name_depression_AIC <- character(length = 5)
+
+#winning_mod_anxiety_BIC <- character(length = 5)
+mod_name_anxiety_BIC <- character(length = 5)
+mod_name_anger_BIC <- character(length = 5)
+mod_name_depression_BIC <- character(length = 5)
+
+# extract formulas of best models
+names_best_mod <- colnames(Xy)[- length(colnames(Xy))]
+names_best <- c(names_best_mod[1:4], "Male", "LI Pos", "LI Neg", "LI Anx",
+                        "LI Ang", "LI Sad", "GS Pos", "GS Neg", "Anxiety")
+names_best <- names_best[-length(names_best)]
+  
+for(i in 1:5){
+  # winning_mod_anxiety_AIC[i] <- paste(names_best[unlist(anxiety_best_subset_AIC[[7]]$BestModels[i, - ncol(anxiety_best_subset_AIC[[7]]$BestModels)])], collapse = " + ")
+  
+  mod_name_anxiety_AIC[i] <- paste(names_best_mod[unlist(anxiety_best_subset_AIC[[7]]$BestModels[i, - ncol(anxiety_best_subset_AIC[[7]]$BestModels)])], collapse = " + ")
+
+  mod_name_anger_AIC[i] <- paste(names_best_mod[unlist(anger_best_subset_AIC[[7]]$BestModels[i, - ncol(anxiety_best_subset_AIC[[7]]$BestModels)])], collapse = " + ")  
+  
+  mod_name_depression_AIC[i] <- paste(names_best_mod[unlist(depr_best_subset_AIC[[14]]$BestModels[i, - ncol(anxiety_best_subset_AIC[[7]]$BestModels)])], collapse = " + ")
+  
+  # winning_mod_anxiety_BIC[i] <- paste(names_best[unlist(anxiety_best_subset_BIC[[7]]$BestModels[i, - ncol(anxiety_best_subset_AIC[[7]]$BestModels)])], collapse = " + ")
+  
+  mod_name_anxiety_BIC[i] <- paste(names_best_mod[unlist(anxiety_best_subset_BIC[[7]]$BestModels[i, - ncol(anxiety_best_subset_AIC[[7]]$BestModels)])], collapse = " + ")
+  
+  mod_name_anger_BIC[i] <- paste(names_best_mod[unlist(anger_best_subset_BIC[[7]]$BestModels[i, - ncol(anxiety_best_subset_AIC[[7]]$BestModels)])], collapse = " + ")
+  
+  mod_name_depression_BIC[i] <- paste(names_best_mod[unlist(depr_best_subset_BIC[[14]]$BestModels[i, - ncol(anxiety_best_subset_AIC[[7]]$BestModels)])], collapse = " + ")
+}
+
+coef_anx_AIC <- vector(mode = "list", length = 5)
+coef_anx_BIC <- vector(mode = "list", length = 5)
+
+coef_ang_AIC <- vector(mode = "list", length = 5)
+coef_ang_BIC <- vector(mode = "list", length = 5)
+
+coef_depr_AIC <- vector(mode = "list", length = 5)
+coef_depr_BIC <- vector(mode = "list", length = 5)
+
+# compute coefficients of best models
+for(i in 1:5){
+  express_AIC <- paste("Anxiety ~", mod_name_anxiety_AIC[i])
+  express_BIC <- paste("Anxiety ~", mod_name_anxiety_BIC[i])
+  
+  express_AIC_ang <- paste("Anger ~", mod_name_anger_AIC[i])
+  express_BIC_ang <- paste("Anger ~", mod_name_anger_BIC[i])
+  
+  express_AIC_depr <- paste("Depression ~", mod_name_depression_AIC[i])
+  express_BIC_depr <- paste("Depression ~", mod_name_depression_BIC[i])
+  
+  
+  # extract regression coefficients of winning models - exclude intercept term
+  coef_anx_AIC[[i]] <- coef(lm(eval(parse(text = express_AIC)), data = Xy))[-1] 
+  coef_anx_BIC[[i]] <- coef(lm(eval(parse(text = express_BIC)), data = Xy))[-1]
+  
+  coef_ang_AIC[[i]] <- coef(lm(eval(parse(text = express_AIC_ang)), 
+                                   data = Xy_ang))[-1] 
+  coef_ang_BIC[[i]] <- coef(lm(eval(parse(text = express_BIC_ang)), 
+                                   data = Xy_ang))[-1]
+  
+  coef_depr_AIC[[i]] <- coef(lm(eval(parse(text = express_AIC_depr)), 
+                                    data = Xy_depr))[-1] 
+  coef_depr_BIC[[i]] <- coef(lm(eval(parse(text = express_BIC_depr)), 
+                                    data = Xy_depr))[-1]
+}
+
+# gender to gender.male as in coefficients output
+names_best_mod <- gsub("gender", "gendermale", names_best_mod)
+
+# create tables to report results
+df_subset_anxiety_AIC <- matrix(ncol = length(names_best_mod) + 1, nrow = 5)
+df_subset_anxiety_BIC <- matrix(ncol = length(names_best_mod) + 1, nrow = 5)
+
+df_subset_anger_AIC <- matrix(ncol = length(names_best_mod) + 1, nrow = 5)
+df_subset_anger_BIC <- matrix(ncol = length(names_best_mod) + 1, nrow = 5)
+
+df_subset_depr_AIC <- matrix(ncol = length(names_best_mod) + 1, nrow = 5)
+df_subset_depr_BIC <- matrix(ncol = length(names_best_mod) + 1, nrow = 5)
+
+
+#row.names(df_subset_anxiety) <- winning_mod_anxiety_AIC
+colnames(df_subset_anxiety_AIC) <- c(names_best_mod, "AIC")
+colnames(df_subset_anxiety_BIC) <- c(names_best_mod, "BIC")
+
+colnames(df_subset_anger_AIC) <- c(names_best_mod, "AIC")
+colnames(df_subset_anger_BIC) <- c(names_best_mod, "BIC")
+
+colnames(df_subset_depr_AIC) <- c(names_best_mod, "AIC")
+colnames(df_subset_depr_BIC) <- c(names_best_mod, "BIC")
+
+
+for(i in 1:5){
+  # subset names of included variables within the dataframe of the i'th model
+  bool_AIC <- colnames(df_subset_anxiety_AIC) %in% names(coef_anx_AIC[[i]]) 
+  bool_BIC <- colnames(df_subset_anxiety_BIC) %in% names(coef_anx_BIC[[i]]) 
+  
+  bool_AIC_ang <- colnames(df_subset_anger_AIC) %in% names(coef_ang_AIC[[i]]) 
+  bool_BIC_ang <- colnames(df_subset_anger_BIC) %in% names(coef_ang_BIC[[i]]) 
+  
+  bool_AIC_depr <- colnames(df_subset_depr_AIC) %in% names(coef_depr_AIC[[i]]) 
+  bool_BIC_depr <- colnames(df_subset_depr_BIC) %in% names(coef_depr_BIC[[i]]) 
+  
+  # add coefficients to table
+  df_subset_anxiety_AIC[i, bool_AIC] <- round(coef_anx_AIC[[i]], 3)
+  df_subset_anxiety_BIC[i, bool_BIC] <- round(coef_anx_BIC[[i]], 3)
+  
+  df_subset_anger_AIC[i, bool_AIC_ang] <- round(coef_ang_AIC[[i]], 3)
+  df_subset_anger_BIC[i, bool_BIC_ang] <- round(coef_ang_BIC[[i]], 3)
+  
+  df_subset_depr_AIC[i, bool_AIC_depr] <- round(coef_depr_AIC[[i]], 3)
+  df_subset_depr_BIC[i, bool_BIC_depr] <- round(coef_depr_BIC[[i]], 3)
+}
+
+# add values of information criteria to table
+df_subset_anxiety_AIC[, "AIC"] <- round(anxiety_best_subset_AIC[[7]]$BestModels[,"Criterion"], 2)
+df_subset_anxiety_BIC[, "BIC"] <- round(anxiety_best_subset_BIC[[7]]$BestModels[,"Criterion"], 2)
+
+df_subset_anger_AIC[, "AIC"] <- round(anger_best_subset_AIC[[7]]$BestModels[,"Criterion"], 2)
+df_subset_anger_BIC[, "BIC"] <- round(anger_best_subset_BIC[[7]]$BestModels[,"Criterion"], 2)
+
+df_subset_depr_AIC[, "AIC"] <- round(depr_best_subset_AIC[[7]]$BestModels[,"Criterion"], 2)
+df_subset_depr_BIC[, "BIC"] <- round(depr_best_subset_BIC[[7]]$BestModels[,"Criterion"], 2)
+
+# change colnames back
+colnames(df_subset_anxiety_AIC)[-length(colnames(df_subset_anxiety_AIC))] <- names_best
+colnames(df_subset_anxiety_BIC)[-length(colnames(df_subset_anxiety_BIC))] <- names_best
+
+colnames(df_subset_anger_AIC)[-length(colnames(df_subset_anger_AIC))] <- names_best
+colnames(df_subset_anger_BIC)[-length(colnames(df_subset_anger_BIC))] <- names_best
+
+colnames(df_subset_depr_AIC)[-length(colnames(df_subset_depr_AIC))] <- names_best
+colnames(df_subset_depr_BIC)[-length(colnames(df_subset_depr_BIC))] <- names_best
+
+# change to dataframe
+df_subset_anxiety_AIC <- as.data.frame(df_subset_anxiety_AIC)
+df_subset_anxiety_BIC <- as.data.frame(df_subset_anxiety_BIC)
+
+df_subset_anger_AIC <- as.data.frame(df_subset_anger_AIC)
+df_subset_anger_BIC <- as.data.frame(df_subset_anger_BIC)
+
+df_subset_depr_AIC <- as.data.frame(df_subset_depr_AIC)
+df_subset_depr_BIC <- as.data.frame(df_subset_depr_BIC)
+
+# save dataframes
+save(df_subset_anxiety_AIC, file = "../data/df_subset_anxiety_AIC.RData")
+save(df_subset_anxiety_BIC, file = "../data/df_subset_anxiety_BIC.RData")
+
+save(df_subset_anger_AIC, file = "../data/df_subset_anger_AIC.RData")
+save(df_subset_anger_BIC, file = "../data/df_subset_anger_BIC.RData")
+
+save(df_subset_depr_AIC, file = "../data/df_subset_depr_AIC.RData")
+save(df_subset_depr_BIC, file = "../data/df_subset_depr_BIC.RData")
+```
+
+
+
+# Factor analysis of survey data
+For further exploration of the survey data a factor analysis is computed. Resulting scores are then regressed on the sentiment measures of GermanSentiment or LIWC and the confounding demographic variables.
+The included variables are the following: 
+- last week's conflicts (ordinal scale)
+- last_weeks_conflicts_work (ordinal scale)
+- change in conflicts compared to pre-Covid times (ordinal scale)
+- suicidal thoughts (ordinal scale)
+- physical domestic violence (ordinal scale)
+- psychological domestic violence (ordinal scale)
+and the follwing binary variables that refer to positive life outcomes compared to pre-Covid times:
+- more wellbeing
+- more relaxed
+- less stress
+- happier
+- more connected 
+- more family 
+- more friends 
+- more hobby 
+- less boredom
+- more sport 
+- healthier nutrition
+- better sleep,
+
+hence resulting in 18 variables that are included in the factor analysis. In order to account for the scaling of the variables (note that none of the variables is continuous), a mixed factor analysis is computed.
+
+
+## Factor analysis
+Not fully reproducible (!): only mixed correlation coefficients are made available.
+```{r, eval = FALSE}
+# import survey data: including the first 75% respondents per survey wave
+load("../data/d2_75.RData")
+
+# subset variables of interest
+data <- d2_75 %>%
+  summarize(last_week_conflicts = as.numeric(last_week_conflicts) - 1,
+            last_weeks_conflicts_work = as.numeric(last_weeks_conflicts_work) - 1,
+            domestic_violence_last_week_psych = as.numeric(domestic_violence_last_week_psych) - 1,
+            domestic_violence_last_week_physic = as.numeric(domestic_violence_last_week_physic) - 1,
+         change_conflicts = as.numeric(change_conflicts) - 1,
+         suicidal_thoughts,
+         more_wellbeing = as.numeric(more_wellbeing) - 1,
+         more_relaxed = as.numeric(more_relaxed) - 1,
+         less_stress = as.numeric(less_stress) - 1, 
+         happier =  as.numeric(happier) - 1, 
+         more_connected = as.numeric(more_connected) - 1,
+         more_family = as.numeric(more_family) - 1,
+         more_friends = as.numeric(more_friends) - 1,
+         more_hobby = as.numeric(more_hobby) - 1, 
+         less_boredom = as.numeric(less_boredom) - 1, 
+         more_sport = as.numeric(more_sport) - 1,
+         healthier_nutrition = as.numeric(healthier_nutrition) - 1,
+         better_sleep = as.numeric(better_sleep) - 1)
+
+# not measured in every wave, therefore not included in the fa:
+# 1) relationship_satisfaction, 2) pandemic_anxiety, 3) ptsd, 4) prosocial behavior, 5) resilience, 6) likelihood_getting_help
+```
+
+```{r, eval=FALSE}
+# compute polychoric/ tetrachoric correlation coefficients 
+
+#summary(data)
+# as ordinal or continuous?
+#table(d2_75$suicidal_thoughts) # 11 levels
+# Since x_i is not metric but polytomously scaled: rather perform polychoric/mixed fa
+
+# Polychoric or mixed correlations
+# manually label variables with more than two levels (p) or with exactly two levels (d)
+# global = FALSE if the number of levels differs between variables
+mix_cor <- mixedCor(data = data, p = 1:6, d = 7:ncol(data), global = FALSE)
+```
+
+```{r fig.height = 10, fig.width= 10}
+load("../data/mix_cor.RData")
+rho <- mix_cor$rho
+row.names(rho) <- c("Conflicts Private", "Conflicts Work", "Violence Phyiscal", "Violence Psych", "Change Conflicts", "Suicidal Thoughts", "More Wellbeing", "More Relaxed", "Less Stress", "Happier", "More Connected", "More Family", "More Friends", "More Hobbies", "Less Bored", "More Sport", "Healthier Food", "Better Sleep")
+colnames(rho) <- c("Conflicts Private", "Conflicts Work", "Violence Phyiscal", "Violence Psych", "Change Conflicts", "Suicidal Thoughts", "More Wellbeing", "More Relaxed", "Less Stress", "Happier", "More Connected", "More Family", "More Friends", "More Hobbies", "Less Bored", "More Sport", "Healthier Food", "Better Sleep")
+#cor.plot(mix_cor$rho, numbers = TRUE, upper = FALSE, main = "Mixed Correlation", show.legend=FALSE)
+plot_mixed_cor <- ggcorrplot(t(rho), method ="circle", lab = TRUE, 
+                           title = " ")
+ggsave("../plots/plot_mixed_cor.pdf", plot_mixed_cor, width = 10, height = 10)
+
+# higher correlation coefficients than with naive Pearson`s correlations but rather similar because of Likert-like scales
+```
+
+## Number of factors
+
+```{r}
+# choice of number of factors
+# based on library psych
+parallel_fa <- fa.parallel(rho, n.obs = nrow(data), fm ="pa", fa ="fa", main = "Scree Plot",
+            ylab = "Eigenvalues of Principal Factors")
+save(parallel_fa, file = "../data/parallel_fa.RData")
+#plot(parallel_fa)
+```
+
+```{r scree-plot, message = FALSE}
+y <- parallel_fa$fa.values
+y_sim <- parallel_fa$fa.sim
+x <- 1:length(y)
+
+df_fa <- cbind.data.frame(x, y, y_sim)
+df_fa <- pivot_longer(df_fa, cols = 2:3)
+df_fa$name <- factor(df_fa$name)
+levels(df_fa$name) <- c("FA Actual Data", "FA Simulated Data")
+
+scree_plot <- ggplot(df_fa, aes(x = x, y = value, color = name, linetype = name), size = 1.2) +
+  geom_line() + 
+  theme_bw() +
+  labs(x = "Factor Number", y = "Eigenvalues of Principal Factors") +
+  geom_hline(yintercept = 1) + 
+  theme(text=element_text(size=10), 
+                    legend.title=element_blank(), legend.position="bottom",
+                    legend.text = element_text(size=8),
+                    plot.margin = margin(0.5, 0.5, 0.5, 0.5, "cm")) + 
+  scale_x_continuous(breaks=1:length(y))
+
+ggsave("../plots/scree_plot.pdf", scree_plot, width = 10, height = 4)
+```
+
+In this case, the scree-plot criterion as well as the absolute values of the eigenvalues both indicate a two-factor solution.
+In the mixed correlation table we can already perceive that higher (blue) correlations tend to cluster in the top left (the five "non-psychological" variables) and bottom right corner (the binary positive life areas). Whilst parallel analysis suggests six factors, Kaiser/ellbow criterion suggests two factors. For a sparse interpretation of the data,the upcoming factor analysis is computed using two factors.
+
+```{r}
+# Factor analysis
+# using one factor
+X_poly <- fa(data, nfactors = 2, rotate = "varimax", scores = "regression",
+            fm = "mle", cor = "mixed")
+X_poly$loadings
+
+# X_poly_cor <- fa(r = rho, nfactors = 2, rotate = "varimax", scores = "regression",
+#             fm = "mle")
+# X_poly_cor$loadings
+
+save(X_poly, file = "../data/X_poly_cor.RData")
+```
+The results nicely split in the variables concerning conflicts, domestic violence and suicidal thoughts that load highly in one score and all the binary positive life variable that load highly in the other score. 
+
+Illustraion of the factor loadings:
+```{r}
+# illustration of factor loadings for data_75 fa
+fa.diagram(X_poly)
+# NEVALSGT1() # Kaiser criterion # from EFA.dimensions package
+```
+In the next steps the first score "ML2" will be interpreted as a positive life-outcome factor, whilst the second score "ML1" will be interpreted as a conflict- and suicide-related factor.
+
+## Correlations with Factor Scores
+```{r}
+# extract scores
+fact_data <- as.data.frame(X_poly$scores)
+colnames(fact_data) <- c("Positive_Life", "Conflict")
+d2_75_fa <- cbind.data.frame(d2_75, fact_data)
+
+# compute mean per wave of the score
+fact_data <- d2_75_fa %>%
+  filter(gender %in% c("male", "female")) %>%
+  filter(!region %in% c("Burgenland", "Kärnten", "Niederösterreich", "Vorarlberg")) %>%
+  mutate(gender = factor(gender)) %>%
+  dplyr::select(wave, gender, region, Positive_Life, Conflict)
+
+
+
+# compute mean per wave of the score for Spearman's rank correlations
+fact_data_spear <- fact_data %>%
+  group_by(wave) %>%
+  summarize(Positive_Life = mean(Positive_Life), Conflict = mean(Conflict))
+
+# compute mean per wave, gender and region of the two factor scores for Twitter regression analyses
+
+fact_data <- fact_data %>%
+  group_by(wave, gender, region) %>%
+  summarize(Positive_Life = mean(Positive_Life), Conflict = mean(Conflict))
+```
+
+
+```{r}
+# Spearman's rank correlation coefficient table
+# for both scores and both social media platforms
+
+# first create df
+Xy_twitter_pos <- cbind(liwc_twitter_corrected_time[[7]][, c("Posemo.corrected",
+                                                          "Negemo.corrected", "Anx.corrected",
+                                                          "Anger.corrected")],
+                        liwc_twitter_corrected_time[[14]][, "Sad.corrected"],
+            gs_twitter_corrected_time[[7]][, c("positive.corrected", "negative.corrected")],
+            fact_data_spear$Positive_Life)
+colnames(Xy_twitter_pos)[ncol(Xy_twitter_pos)] <- "Positive_Life"
+
+Xy_stand_pos <- cbind(liwc_stand_corrected_time[[7]][, c("Posemo.corrected",
+                                                          "Negemo.corrected", "Anx.corrected",
+                                                          "Anger.corrected")],
+                      liwc_stand_corrected_time[[14]][, "Sad.corrected"],
+            gs_stand_corrected_time[[7]][, c("positive.corrected", "negative.corrected")],
+            fact_data_spear$Positive_Life)
+colnames(Xy_stand_pos)[ncol(Xy_stand_pos)] <- "Positive_Life"
+
+
+Xy_twitter_neg <- cbind(liwc_twitter_corrected_time[[7]][, c("Posemo.corrected",
+                                                          "Negemo.corrected", "Anx.corrected",
+                                                          "Anger.corrected")],
+            gs_twitter_corrected_time[[7]][, c("positive.corrected", "negative.corrected")],
+            liwc_twitter_corrected_time[[14]][, "Sad.corrected"],
+            fact_data_spear$Conflict)
+colnames(Xy_twitter_neg)[ncol(Xy_twitter_neg)] <- "Conflict"
+
+Xy_stand_neg <- cbind(liwc_stand_corrected_time[[7]][, c("Posemo.corrected",
+                                                          "Negemo.corrected", "Anx.corrected",
+                                                          "Anger.corrected")],
+            gs_stand_corrected_time[[7]][, c("positive.corrected", "negative.corrected")],
+            liwc_stand_corrected_time[[14]][, "Sad.corrected"],
+            fact_data_spear$Conflict)
+colnames(Xy_stand_neg)[ncol(Xy_stand_neg)] <- "Conflict"
+```
+
+```{r}
+# correlation tables
+# with positive life outcome factor and Twitter data
+cor_twitter_positive <- cor(Xy_twitter_pos[,ncol(Xy_twitter_pos)],
+                       Xy_twitter_pos[,-ncol(Xy_twitter_pos)],
+                       use = "complete.obs", method = "spearman")
+
+# with conflict and suicide related factor and Twitter data
+cor_twitter_conflict <- cor(Xy_twitter_neg[,ncol(Xy_twitter_neg)],
+                       Xy_twitter_neg[,-ncol(Xy_twitter_neg)],
+                       use = "complete.obs", method = "spearman")
+
+# with positive life outcome factor and Der Standard data
+cor_stand_positive <- cor(Xy_stand_pos[,ncol(Xy_stand_pos)],
+                       Xy_stand_pos[,-ncol(Xy_stand_pos)],
+                       use = "complete.obs", method = "spearman")
+
+# with conflict and suicide related factor and Der Standard data
+cor_stand_conflict <- cor(Xy_stand_neg[,ncol(Xy_stand_neg)],
+                       Xy_stand_neg[,-ncol(Xy_stand_neg)],
+                       use = "complete.obs", method = "spearman")
+
+# join these correlation tables in two tables for Twitter/ Der Standard
+df_spear_fa_twitter <- round(rbind.data.frame(cor_twitter_pos, cor_twitter_neg), 2)
+df_spear_fa_stand <- round(rbind.data.frame(cor_stand_pos, cor_stand_neg), 2)
+
+# change names: 
+row.names(df_spear_fa_twitter) <- c("Positive Life Outcome", "Conflict- and Suicide related")
+row.names(df_spear_fa_stand) <- row.names(df_spear_fa_twitter)
+names(df_spear_fa_twitter) <- c("LIWC Positive", "LIWC Negative", "LIWC Anxiety",
+                        "LIWC Anger", "LIWC Sadness", "GS Positive",
+                        "GS Negative")  
+names(df_spear_fa_stand) <- names(df_spear_fa_twitter)
+
+# delete leading zero for APA style:
+# df_spear_fa_twitter <- printnum(df_spear_fa_twitter, gt1 = FALSE)
+# df_spear_fa_stand <- printnum(df_spear_fa_stand, gt1 = FALSE)
+
+plot_spear_fa_twitter <- ggcorrplot(df_spear_fa_twitter, method ="circle", lab = TRUE)
+plot_spear_fa_stand <- ggcorrplot(df_spear_fa_stand, method ="circle", lab = TRUE)
+
+ggsave("../plots/plot_spear_fa_twitter.pdf", plot_spear_fa_twitter, width = 4, height = 5)
+ggsave("../plots/plot_spear_fa_stand.pdf", plot_spear_fa_stand, width = 4, height = 5)
+
+```
+
+
+
+# Demographic tables: Postings per year/federal state/platform
+```{r}
+# table
+load("../data/tables.RData")
+
+table_gender_region
+```
+
+# Threshold for sentiment data: plot histograms
+Not reproducible (!):
+```{r, fig.width = 11, fig.height=8, eval = FALSE}
+# the GermanSentiment analysis outputs p-values ranging in [0, 1]. In order to dichotomize these probabilities to either 0 or 1, one needs to decide on a threshold. In the present case, this is done by visual inspection of the distribution of German Sentiment negative and positive emotionality values for the 2020 data. This analysis is done for both Twitter and DerStandard.
+
+# set wd first
+load("gs_stand_20.RData")
+load("gs_twitter.RData")
+load("meta_data_stand_20.RData")
+load("date_twitter_2020.RData")
+
+gs_stand_2020 <- cbind(meta_data_stand_2020$timestamps, gs_stand_2020)
+gs_twitter <- cbind(date_twitter_2020, gs_twitter)
+
+# only select posts from 2020
+
+gs_stand_2020 <- gs_stand_2020 %>%
+  filter(V1 < "2021-01-01")
+# check
+#range(gs_stand_2020$V1)
+
+gs_twitter <- gs_twitter %>%
+  filter((date_twitter_2020 > "2019-12-31")&(date_twitter_2020 < "2021-01-01"))
+
+# check
+#range(gs_stand_2020$V1)
+#range(gs_twitter$date_twitter_2020)
+
+# Plot histograms
+p_twitter_neg <- ggplot(data = gs_twitter, aes(x = negative))+
+  geom_histogram(col = I("red"), fill = I("blue"), alpha=I(.2), binwidth = 0.02)+
+  #labs(title = "Histogram GS Negative Emotion Twitter") +
+  xlab("GS Negative Affect") +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
+  theme(plot.title = element_text(size = 12))+
+  theme_bw()
+  #papaja::theme_apa(box = TRUE)
+
+# p_twitter_pos <- ggplot(data = gs_twitter, aes(x = positive))+
+#   geom_histogram(col = I("red"), fill = I("blue"), alpha=I(.2), binwidth = 0.02)+
+#   labs(title = "Histogram GS Positive Emotion Twitter") +
+#   xlab("GS positive emotionality") +
+#   scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
+#   theme(plot.title = element_text(size = 16)) +
+#   papaja::theme_apa(box = TRUE)
+
+p_stand_neg <- ggplot(data = gs_stand_2020, aes(x = negative))+
+  geom_histogram(col = I("red"), fill = I("blue"), alpha=I(.2), binwidth = 0.02)+
+  #labs(title = "Histogram GS Negative Emotion Der Standard") +
+  xlab("GS Negative Affect") +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
+  theme(plot.title = element_text(size = 12))+
+  theme_bw()
+  #papaja::theme_apa(box = TRUE)
+
+# p_stand_pos <- ggplot(data = gs_stand_2020, aes(x = positive))+
+#   geom_histogram(col = I("red"), fill = I("blue"), alpha=I(.2), binwidth = 0.02)+
+#   labs(title = "Histogram GS Positive Emotion Der Standard") +
+#   xlab("GS positive emotionality") +
+#   scale_x_continuous(breaks = seq(0, 1, by = 0.1)) +
+#   theme(plot.title = element_text(size = 16)) +
+#   papaja::theme_apa(box = TRUE)
+
+
+# grid.arrange(p_twitter_neg, p_twitter_pos, p_stand_neg, p_stand_pos, nrow = 2)
+
+
+# Especially for positive emotion the rise from 0.10 to 0 is much higher that the one form 0.90 to 1. Hence, only focus on values ranging from 0.50 to 1.00 in order to investigate the latter rise more precisely.
+
+p_twitter_pos_2 <- ggplot(subset(gs_twitter, positive > 0.5), aes(x = positive))+
+  geom_histogram(col = I("red"), fill = I("blue"), alpha=I(.2), binwidth = 0.02)+
+  #labs(title = "Histogram GS Positive Emotion Twitter") +
+  xlab("GS Positive Affect") +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.05)) +
+  theme(plot.title = element_text(size = 12)) +
+  theme_bw() 
+  #papaja::theme_apa(box = TRUE)
+
+p_stand_pos_2 <- ggplot(subset(gs_stand_2020, positive > 0.5), aes(x = positive))+
+  geom_histogram(col = I("red"), fill = I("blue"), alpha=I(.2), binwidth = 0.02)+
+  #labs(title = "Histogram GS Positive Emotion Der Standard") +
+  xlab("GS Positive Affect") +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.05)) +
+    theme(plot.title = element_text(size = 12)) +
+  theme_bw()
+  #papaja::theme_apa(box = TRUE)
+
+# p_twitter_pos_2
+# p_stand_pos_2
+
+ggsave("../plots/threshold_twitter_neg.pdf", p_twitter_neg, width = 5, height = 3)
+ggsave("../plots/threshold_twitter_pos.pdf", p_twitter_pos_2, width = 5, height = 3)
+ggsave("../plots/threshold_stand_neg.pdf", p_stand_neg, width = 5, height = 3)
+ggsave("../plots/threshold_stand_pos.pdf", p_stand_pos_2, width = 5, height = 3)
+
+# hist_thres <- grid.arrange(p_twitter_neg, p_twitter_pos_2, p_stand_neg, p_stand_pos_2, nrow = 2)
+# 
+# hist_thres
+# 
+# # save grid
+# ggsave("../plots/threshold.png", hist_thres)
+# ggsave("../plots/threshold.pdf", hist_thres, width = 11, height = 8)
+```

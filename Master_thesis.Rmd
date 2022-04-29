@@ -1,0 +1,103 @@
+---
+title             : "Associations of affect in large-scale social media aggregates and a 12-wave representative survey during the Covid-19 pandemic in Austria"
+shorttitle        : "Affect in surveys and social media platforms"
+
+author: 
+  - name          : "Damian Erik Bednarz"
+    affiliation   : "1"
+    corresponding : yes    # Define only one corresponding author
+    email         : "damian.bednarz@posteo.de"
+
+affiliation:
+  - id            : "1"
+    institution   : "University of Vienna"
+#toc               : true
+leftheader: "Affect in surveys and social media platforms"
+
+authornote: |
+  Computational Social Science Unit - Complexity Science Hub Vienna
+
+
+abstract: |
+  Large-scale surveys are costly, effortful to conduct and suffer from a range of biases when assessing a population's emotional state. Therefore, alternative efficient and easily accessible ways of measuring emotional changes - especially during the Covid-19 pandemic - are warranted. This thesis investigated whether patterns in a 12-wave mental health survey with representative Austrian samples during the 2020 pandemic can be linked to sentiment measures based on postings from Twitter and the Austrian newspaper forum Der Standard. More specifically, we correlated self-reported depression, anxiety and anger with various dictionary-based Linguistic Inquiry and Word Count (LIWC) scores and two deep learning-based German Sentiment (GS) scores. Apart from LIWC anger, all Spearman's rank correlations between survey and social media variables were positive and medium in size. Yet, they were not significant, which may be related to the limited sample size caused by the small number of survey waves. Further exploration with Twitter data points to a substantial confounding effect of gender and federal state, which may explain a large part of the variation in the self-reported emotions. Generally, we found inconsistent evidence concerning the comparison between machine learning-based and dictionary-based methods and cannot back the claim that the former outperforms the latter in German. Our results further indicate that volatile emotional variables like anger are better understood by keeping the time window for which social media data is included short. In contrast, mental health variables that evolve more slowly in time, such as depression, are more strongly associated with survey measures when this time window is longer. Further exploratory analyses mostly affirm existing literature on the association between survey emotions and sentiment measures, although the current associations tend to be smaller. Hence, the results partly support recent research concerning the validity of emotion and sentiment measures but call for replications with higher statistical power by implementing repeated surveys at smaller time intervals.
+  
+
+keywords          : "Social Media, Sentiment Analyses, Mental Health Survey, Covid-19"
+
+#  (wordcount         : "X")
+
+
+bibliography      : ["Literature.bib", "r-references.bib"]
+#appendix          : "Appendix.Rmd"
+
+floatsintext      : yes # if no, figures are deferred to the end of the document
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : no
+mask              : no
+draft             : no
+indent            : true
+csl               : "apa.csl"
+documentclass     : "apa7"
+classoption       : "jou"
+header-includes:
+  - \usepackage{subfig}
+  - \usepackage{float}
+
+output            : 
+  papaja::apa6_pdf
+---
+
+
+```{r setup, include = FALSE}
+# load libraries
+library(papaja)
+library(gridExtra)
+library(tidyverse)
+# include all the other libraries that were used for the analyses in order to directly create their bibtex citations
+library(data.table)
+library(psych)
+library(ggcorrplot)
+library(boot)
+library(rlist) 
+library(leaps) 
+library(bestglm)
+library(dummies)
+library(haven)
+library(bit64)
+library(zoo)
+library(ggDoE) 
+library(ppcor) 
+
+# cite packages
+r_refs("r-references.bib", append = FALSE)
+my_citations <- cite_r(file = "r-references.bib")
+# replace ; with , in my_citations, for the citations to work properly
+my_citations <- gsub(pattern = ";", replacement = ",", x = my_citations)
+```
+
+```{r analysis-preferences}
+# Seed for random number generation
+set.seed(123)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+```
+
+```{r child = "scripts/Introduction.Rmd"}
+```
+
+```{r child = "scripts/Hypotheses.Rmd"}
+```
+
+```{r child = "scripts/Methods.Rmd"}
+```
+
+```{r child = "scripts/Results.Rmd"}
+```
+
+```{r child = "scripts/Discussion.Rmd"}
+```
+
+```{r child = "scripts/Appendix.Rmd"}
+```
+
